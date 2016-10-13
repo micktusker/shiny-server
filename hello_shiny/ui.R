@@ -12,4 +12,4 @@ ui <- fluidPage(
   )
 )
 # https://bookdown.org/weicheng/shinyTutorial/server.html
-print(ui)
+#print(ui)
