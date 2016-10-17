@@ -1,4 +1,4 @@
-ui <- shinyUI(
+shinyUI(
   fluidPage(
     titlePanel("Test Connection"),
     
