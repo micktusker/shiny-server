@@ -1,0 +1,3 @@
+https://shiny.rstudio.com/reference/shiny/latest/updateTextInput.html
+http://stackoverflow.com/questions/23432416/resetting-input-field-to-null-after-clicking-button-in-r-shiny
+http://deanattali.com/2015/06/14/mimicking-google-form-shiny/
