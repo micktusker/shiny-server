@@ -8,7 +8,7 @@ pool <- dbPool(
   dbname = "crud_demo.db"
 )
 
-conn <- poolCheckout(pool)
+conn <- poolCheckout(pool) # tried src_pool here without success
 insert.row <- function(name, favourite_pkg, used_shiny, r_num_years, os_type) {
   dbBegin(conn)
   sql <- 'INSERT INTO mytable(name, favourite_pkg, used_shiny, r_num_years, os_type) VALUES(:name, :favourite_pkg, :used_shiny, :r_num_years, :os_type)'

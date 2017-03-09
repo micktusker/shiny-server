@@ -1,0 +1,21 @@
+Antibody Condition	Antibody	CI_LOWER	CI_UPPER
+Soluble Low	Soluble TSK022002 (LOW)	1.813	4.599
+Cross Linked Low	Cross-linked TSK022006 (LOW)	2.866	3.852
+Soluble Low	Soluble TSKC01 (LOW)	3.933	4.878
+Soluble Low	Soluble TSK022004 (LOW)	3.958	5.296
+Soluble High	Soluble TSK022001 (HIGH)	5.052	6.878
+Soluble High	Soluble TSKC12 (HIGH)	5.193	10.32
+Cross Linked Low	Cross-linked TSK022003 (LOW)	5.752	10.05
+Soluble Low	Soluble TSK022005 (LOW)	6.024	8.181
+Cross Linked Low	Cross-linked TSK022004 (LOW)	6.76	12.02
+Soluble Low	Soluble TSK022003 (LOW)	8.955	14.16
+Soluble High	Soluble TSKC01 (HIGH)	9.764	20.13
+Cross Linked High	Cross-linked TSK022004 (HIGH)	10.55	17.28
+Cross Linked High	Cross-linked TSK022003 (HIGH)	10.82	18.27
+Soluble High	Soluble TSK022002 (HIGH)	11.06	17.49
+Cross Linked High	Cross-linked TSKC01 (HIGH)	12.42	20.28
+Cross Linked Low	Cross-linked TSK022005 (LOW)	17.22	19.06
+Cross Linked High	Cross-linked TSK022005 (HIGH)	22.29	27.95
+Soluble Low	Soluble TSKC12 (LOW)	25.35	97.18
+Cross Linked High	Cross-linked TSK022002 (HIGH)	52.56	98.98
+Cross Linked Low	Cross-linked TSK022002 (LOW)	77.55	95.8
