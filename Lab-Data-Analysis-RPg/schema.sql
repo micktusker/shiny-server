@@ -20,7 +20,9 @@ CREATE TABLE stored_data.pan_tcell_facs_data(
   cd8_percent_cd137 REAL, 
   cd4_cell_number INTEGER, 
   cd8_cell_number INTEGER, 
-  sample_identifier TEXT);
+  sample_identifier TEXT,
+  source_file_description TEXT);
+
 COMMENT ON TABLE stored_data.pan_tcell_facs_data IS 'Stores FACS data for the "Pan T Cell Assay" that has been analysed by FlowJo with the sample IDs added using VBA code in the macro sheet "prepare_data_macros.xlsm".';
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.pan_tcell_facs_data_id IS 'Auto-generated primary key for table "stored_data.pan_tcell_facs_data"';
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.upload_date IS 'The date that the row was inserted into the table "stored_data.pan_tcell_facs_data".';
@@ -42,3 +44,4 @@ COMMENT ON COLUMN stored_data.pan_tcell_facs_data.cd8_percent_cd137 IS 'perc CD1
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.cd4_cell_number IS 'To be calculated using a code of some sort';
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.cd8_cell_number IS 'To be calculated using a code of some sort';
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.sample_identifier IS 'Extracted from the plate map and matched to the raw_sample_id using the VBA code in "prepare_data_macros.xlsm"';
+COMMENT ON COLUMN stored_data.pan_tcell_facs_data.source_file_description IS 'Contains the value entered into the VBA form from the macro sheet "prepare_data_macros.xlsm" for "File Description". This is crucial for tracking data batches.';
