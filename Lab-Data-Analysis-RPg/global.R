@@ -7,7 +7,7 @@ library(DBI)
 # psql -U micktusker -h 127.0.0.1 postgres
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
-  dbname = "cd38",
+  dbname = "facs_analysis",
   host = "127.0.0.1",
   user = "micktusker",
   port = 5432,

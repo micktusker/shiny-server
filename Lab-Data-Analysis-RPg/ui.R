@@ -2,7 +2,7 @@ library(shiny)
 shinyUI(fluidPage(
   
   # Application title
-  headerPanel("Display TCGA Cancer Codes"),
+  headerPanel("Display All Loaded Data"),
   mainPanel(
     tableOutput("result")
   )
