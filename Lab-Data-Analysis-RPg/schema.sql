@@ -45,3 +45,50 @@ COMMENT ON COLUMN stored_data.pan_tcell_facs_data.cd4_cell_number IS 'To be calc
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.cd8_cell_number IS 'To be calculated using a code of some sort';
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.sample_identifier IS 'Extracted from the plate map and matched to the raw_sample_id using the VBA code in "prepare_data_macros.xlsm"';
 COMMENT ON COLUMN stored_data.pan_tcell_facs_data.source_file_description IS 'Contains the value entered into the VBA form from the macro sheet "prepare_data_macros.xlsm" for "File Description". This is crucial for tracking data batches.';
+
+
+-- Stored procedure code for returning data sets to R
+CREATE OR REPLACE FUNCTION get_array_mean(p_replicates REAL[])
+RETURNS REAL
+AS
+$$
+DECLARE
+  l_mean REAL;
+BEGIN
+  WITH cte AS
+  (SELECT 
+    UNNEST(p_replicates) replicate_value)
+  SELECT AVG(replicate_value) INTO l_mean FROM cte;
+  RETURN l_mean;           
+END;
+$$
+LANGUAGE plpgsql;
+-- SELECT get_array_mean(ARRAY[47.4,36.5]::REAL[]);
+COMMENT ON FUNCTION get_array_mean(REAL[]) IS $$Given an array of real numbers, return the mean (AVG). Example call: SELECT get_array_mean(ARRAY[47.4,36.5]::REAL[]);$$;
+
+
+
+CREATE OR REPLACE FUNCTION get_single_datatype(p_column_name TEXT, p_experiment_name TEXT, p_source_file_description TEXT)
+RETURNS TABLE(sample_identifier TEXT, replicates REAL[], replicates_avg REAL)
+AS
+$$
+BEGIN
+  RETURN QUERY EXECUTE format(
+      'SELECT
+        sample_identifier,
+        ARRAY_AGG(%I) replicates,
+        get_array_mean(ARRAY_AGG(%I)) replicates_avg
+      FROM 
+        stored_data.pan_tcell_facs_data
+      WHERE
+        experiment_name = $1
+        AND
+          source_file_description = $2
+      GROUP BY
+        sample_identifier', p_column_name, p_column_name) USING p_experiment_name, p_source_file_description;
+END;
+$$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION get_single_datatype(TEXT, TEXT, TEXT) IS $qq$Purpose: Pan T Cell FACS data analysis. Description: Given a column name (one set of data), an experiment name and a source file description, return a table of results containing the replicates (array) and the mean of these replicates. Example call: SELECT sample_identifier, replicates, replicates_avg FROM get_single_datatype('cd4_mfi_cd25', 'TSK01_vitro_024', 'TSK01_vitro_024 donor 1 day4 FACS analysis');
+. General point: This type of dynamic query is very useful and this idea can be extended to other tasks.$qq$;
+-- SELECT sample_identifier, replicates, replicates_avg FROM get_single_datatype('cd4_mfi_cd25', 'TSK01_vitro_024', 'TSK01_vitro_024 donor 1 day4 FACS analysis');
