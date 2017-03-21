@@ -10,5 +10,5 @@ shinyUI(fluidPage(
     actionButton("submit", "Submit", class = "btn-primary")
     ),
   mainPanel(plotOutput("barplot")),
-  mainPanel(tableOutput("result"))
+  mainPanel(DT::dataTableOutput("result"))
 ))
