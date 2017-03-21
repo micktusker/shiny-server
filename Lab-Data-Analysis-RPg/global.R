@@ -8,10 +8,10 @@ library(DBI)
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
   dbname = "facs_analysis",
-  host = "127.0.0.1",
+  host = "localhost",
   user = "micktusker",
-  port = 5432,
-  password = ""
+  port = 5433,
+  password = "Ritalin0112!"
 )
 
 pg.conn <- poolCheckout(pool)
