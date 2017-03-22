@@ -210,8 +210,7 @@ LANGUAGE plpgsql;
 COMMENT ON FUNCTION get_array_mean(REAL[]) IS $$Given an array of real numbers, return the mean (AVG). Example call: SELECT get_array_mean(ARRAY[47.4,36.5]::REAL[]);$$;
 
 
-
-CREATE OR REPLACE FUNCTION get_single_datatype(p_column_name TEXT, p_experiment_name TEXT, p_source_file_description TEXT)
+CREATE OR REPLACE FUNCTION get_single_datatype(p_column_name TEXT, p_experiment_name TEXT)
 RETURNS TABLE(sample_identifier TEXT, replicates REAL[], replicates_avg REAL)
 AS
 $$
@@ -222,16 +221,80 @@ BEGIN
         ARRAY_AGG(%I) replicates,
         get_array_mean(ARRAY_AGG(%I)) replicates_avg
       FROM 
-        stored_data.pan_tcell_facs_data
+        stored_data.pan_tcell_facs_data ptfd
+        JOIN stored_data.loaded_files_metadata lfmd
+          ON ptfd.uploaded_excel_file_id = lfmd.uploaded_excel_file_id
       WHERE
         experiment_name = $1
         AND
-          source_file_description = $2
+          LENGTH(TRIM(sample_identifier)) > 1
       GROUP BY
-        sample_identifier', p_column_name, p_column_name) USING p_experiment_name, p_source_file_description;
+        sample_identifier', p_column_name, p_column_name) USING p_experiment_name;
 END;
 $$
 LANGUAGE plpgsql;
-COMMENT ON FUNCTION get_single_datatype(TEXT, TEXT, TEXT) IS $qq$Purpose: Pan T Cell FACS data analysis. Description: Given a column name (one set of data), an experiment name and a source file description, return a table of results containing the replicates (array) and the mean of these replicates. Example call: SELECT sample_identifier, replicates, replicates_avg FROM get_single_datatype('cd4_mfi_cd25', 'TSK01_vitro_024', 'TSK01_vitro_024 donor 1 day4 FACS analysis');
+COMMENT ON FUNCTION get_single_datatype(TEXT, TEXT) IS $qq$Purpose: Pan T Cell FACS data analysis. Description: Given a column name (one set of data), an experiment name and a source file description, return a table of results containing the replicates (array) and the mean of these replicates. Example call: SELECT sample_identifier, replicates, replicates_avg FROM get_single_datatype('cd4_mfi_cd25', 'TSK01_vitro_024');
 . General point: This type of dynamic query is very useful and this idea can be extended to other tasks.$qq$;
--- SELECT sample_identifier, replicates, replicates_avg FROM get_single_datatype('cd4_mfi_cd25', 'TSK01_vitro_024', 'TSK01_vitro_024 donor 1 day4 FACS analysis');
+
+
+CREATE OR REPLACE FUNCTION get_uploaded_excel_basename(p_uploaded_excel_file_id TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_uploaded_excel_file_name TEXT;
+  l_excel_basename TEXT;
+  l_excel_fullpath_elements  TEXT[];
+  l_excel_fullpath_elements_count INTEGER;
+BEGIN
+  SELECT
+    uploaded_excel_file_name INTO STRICT l_uploaded_excel_file_name 
+  FROM
+    stored_data.loaded_files_metadata
+  WHERE
+     uploaded_excel_file_id = p_uploaded_excel_file_id;
+  l_excel_fullpath_elements := STRING_TO_ARRAY(l_uploaded_excel_file_name, E'\\');
+  l_excel_fullpath_elements_count := ARRAY_LENGTH(l_excel_fullpath_elements, 1);
+  l_excel_basename := l_excel_fullpath_elements[l_excel_fullpath_elements_count];
+  RETURN REPLACE(l_excel_basename, '.xlsx', '');
+END;
+$$
+LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION get_uploaded_excel_basename(TEXT) IS $qq$ Purpose: To extract the basename from a full path for an uploaded Excel file. Argument: uploaded_excel_file_id in table stored_data.loaded_files_metadata. The basename is used to filter results in the R Shiny interface. Example: SELECT get_uploaded_excel_basename('15c4ad591200b27689ab58c22e91a876');$qq$;
+
+
+-- Shiny View creattion
+CREATE OR REPLACE VIEW stored_data.vw_pan_tcell_facs_data_shiny AS
+WITH cte AS
+  (SELECT
+    uploaded_excel_file_id,
+    get_uploaded_excel_basename(uploaded_excel_file_id) uploaded_excel_file_basename,
+    experiment_name,
+    tusk_target_name
+  FROM
+    stored_data.loaded_files_metadata)
+SELECT
+  cte.*,
+  ptfd.raw_data_name,
+  ptfd.sample_identifier,
+  (STRING_TO_ARRAY(ptfd.sample_identifier, E'_'))[ARRAY_LENGTH((STRING_TO_ARRAY(ptfd.sample_identifier, E'_')), 1)] antibody_id,
+  ptfd.viable_cells,
+  ptfd.cd4_mfi_cd137,
+  ptfd.cd4_mfi_proliferation,
+  ptfd.cd4_mfi_cd25,
+  ptfd.cd4_percent_proliferation,
+  ptfd.cd4_percent_cd25,
+  ptfd.cd4_percent_cd137,
+  ptfd.cd8_mfi_cd137,
+  ptfd.cd8_mfi_proliferation,
+  ptfd.cd8_mfi_cd25,
+  ptfd.cd8_percent_proliferation,
+  ptfd.cd8_percent_cd25,
+  ptfd.cd8_percent_cd137,
+  ptfd.cd4_cell_number,
+  ptfd.cd8_cell_number
+FROM
+  stored_data.pan_tcell_facs_data ptfd
+  JOIN cte ON ptfd.uploaded_excel_file_id = cte.uploaded_excel_file_id;
+COMMENT ON VIEW stored_data.vw_pan_tcell_facs_data_shiny IS 'View to join the metadata to the associated FACS data for presentation in Shiny pages.'

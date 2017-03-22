@@ -7,21 +7,20 @@ library(DBI)
 # psql -U micktusker -h 127.0.0.1 postgres
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
-  dbname = "facs_analysis",
+  dbname = "facs_analysis_test",
   host = "localhost",
   user = "micktusker",
-  port = 5433,
-  password = "Ritalin0112!"
+  port = 5432,
+  password = ""
 )
 
 pg.conn <- poolCheckout(pool)
 
 # Call a stored procedure to get a Pan T Cell Data for a specified datatype.name.
-get.pan.tcell.data <- function(datatype.name, experiment.name, source.file.description) {
+get.pan.tcell.data <- function(datatype.name, experiment.name) {
   tmpl <-  "SELECT sample_identifier, replicates, replicates_avg 
-           FROM get_single_datatype('%s', '%s', '%s')
-           WHERE sample_identifier IS NOT NULL"
-  sql <- sprintf(tmpl, datatype.name, experiment.name, source.file.description)
+           FROM get_single_datatype('%s', '%s')"
+  sql <- sprintf(tmpl, datatype.name, experiment.name)
   df <- dbGetQuery(pg.conn, sql)
   return(df)
 }
