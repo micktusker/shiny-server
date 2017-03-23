@@ -18,9 +18,15 @@ pg.conn <- poolCheckout(pool)
 
 # Call a stored procedure to get a Pan T Cell Data for a specified datatype.name.
 get.pan.tcell.data <- function(datatype.name, experiment.name) {
-  tmpl <-  "SELECT sample_identifier, replicates, replicates_avg 
-           FROM get_single_datatype('%s', '%s')"
-  sql <- sprintf(tmpl, datatype.name, experiment.name)
+  tmpl <-  "SELECT
+              uploaded_excel_file_basename donor_day,
+              sample_identifier,
+              antibody_id,
+              antibody_concentration,
+              replicates, replicates_avg 
+            FROM
+              get_single_datatype('%s', '%s')"
+  sql <- sprintf(tmpl, experiment.name, datatype.name)
   df <- dbGetQuery(pg.conn, sql)
   return(df)
 }

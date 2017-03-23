@@ -209,32 +209,58 @@ LANGUAGE plpgsql;
 -- SELECT get_array_mean(ARRAY[47.4,36.5]::REAL[]);
 COMMENT ON FUNCTION get_array_mean(REAL[]) IS $$Given an array of real numbers, return the mean (AVG). Example call: SELECT get_array_mean(ARRAY[47.4,36.5]::REAL[]);$$;
 
-
-CREATE OR REPLACE FUNCTION get_single_datatype(p_column_name TEXT, p_experiment_name TEXT)
-RETURNS TABLE(sample_identifier TEXT, replicates REAL[], replicates_avg REAL)
+-- Use the following two functions to return data to the R Shiny client. The first prepares the data but is not called directly and the second one is the one that is used.
+DROP FUNCTION get_single_datatype_arrays(TEXT, TEXT);
+CREATE  OR REPLACE FUNCTION get_single_datatype_arrays(p_experiment_name TEXT, p_column_name TEXT)
+RETURNS TABLE(uploaded_excel_file_basename TEXT, sample_identifier TEXT, antibody_ids TEXT[], 
+              antibody_concentrations REAL[], replicates REAL[], replicates_avg REAL)
 AS
 $$
 BEGIN
   RETURN QUERY EXECUTE format(
       'SELECT
+        uploaded_excel_file_basename,  
         sample_identifier,
+        ARRAY_AGG(antibody_id) antibody_ids,
+        ARRAY_AGG(antibody_concentration) antibody_concentrations,
         ARRAY_AGG(%I) replicates,
         get_array_mean(ARRAY_AGG(%I)) replicates_avg
       FROM 
-        stored_data.pan_tcell_facs_data ptfd
-        JOIN stored_data.loaded_files_metadata lfmd
-          ON ptfd.uploaded_excel_file_id = lfmd.uploaded_excel_file_id
+        stored_data.vw_pan_tcell_facs_data_shiny
       WHERE
         experiment_name = $1
-        AND
-          LENGTH(TRIM(sample_identifier)) > 1
       GROUP BY
+        uploaded_excel_file_basename,
         sample_identifier', p_column_name, p_column_name) USING p_experiment_name;
 END;
 $$
 LANGUAGE plpgsql;
-COMMENT ON FUNCTION get_single_datatype(TEXT, TEXT) IS $qq$Purpose: Pan T Cell FACS data analysis. Description: Given a column name (one set of data), an experiment name and a source file description, return a table of results containing the replicates (array) and the mean of these replicates. Example call: SELECT sample_identifier, replicates, replicates_avg FROM get_single_datatype('cd4_mfi_cd25', 'TSK01_vitro_024');
-. General point: This type of dynamic query is very useful and this idea can be extended to other tasks.$qq$;
+SELECT * FROM get_single_datatype_arrays('TSK01_vitro_024', 'viable_cells');
+COMMENT ON FUNCTION get_single_datatype_arrays(TEXT, TEXT) IS $qq$Purpose: This is the first of two functions to return a table of results to clients. It returns results for the given column. Example call: SELECT * FROM get_single_datatype_arrays('TSK01_vitro_024', 'viable_cells'); $qq$; 
+DROP FUNCTION get_single_datatype(TEXT, TEXT);
+CREATE OR REPLACE FUNCTION get_single_datatype(p_column_name TEXT, p_experiment_name TEXT)
+RETURNS TABLE(uploaded_excel_file_basename TEXT, sample_identifier TEXT, antibody_id TEXT, 
+              antibody_concentration REAL, replicates TEXT, replicates_avg REAL)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    f.uploaded_excel_file_basename,
+    f.sample_identifier,
+    f.antibody_ids[1] antibody_id,
+    f.antibody_concentrations[1] antibody_concentration,
+    ARRAY_TO_STRING(f.replicates, ', ') replicates,
+    f.replicates_avg
+  FROM
+    get_single_datatype_arrays(p_column_name, p_experiment_name) f;
+END;
+$$
+LANGUAGE plpgsql;
+SELECT * FROM get_single_datatype('TSK01_vitro_024', 'viable_cells');
+COMMENT ON FUNCTION get_single_datatype(TEXT, TEXT) IS $qq$Purpose to return a table of FACS data of a single type to the client. Calls get_single_datatype_arrays(TEXT, TEXT) and processes the arrays that this function returns to give scalars that are either a concatenation or just the first element.$qq$;
+
+
 
 
 CREATE OR REPLACE FUNCTION get_uploaded_excel_basename(p_uploaded_excel_file_id TEXT)
@@ -279,6 +305,12 @@ SELECT
   ptfd.raw_data_name,
   ptfd.sample_identifier,
   (STRING_TO_ARRAY(ptfd.sample_identifier, E'_'))[ARRAY_LENGTH((STRING_TO_ARRAY(ptfd.sample_identifier, E'_')), 1)] antibody_id,
+  CASE
+    WHEN isnumeric((STRING_TO_ARRAY(ptfd.sample_identifier, E'_'))[ARRAY_LENGTH((STRING_TO_ARRAY(ptfd.sample_identifier, E'_')), 1) -1]) THEN
+      ((STRING_TO_ARRAY(ptfd.sample_identifier, E'_'))[ARRAY_LENGTH((STRING_TO_ARRAY(ptfd.sample_identifier, E'_')), 1) -1])::REAL
+    ELSE
+      NULL
+  END antibody_concentration,
   ptfd.viable_cells,
   ptfd.cd4_mfi_cd137,
   ptfd.cd4_mfi_proliferation,
@@ -297,4 +329,18 @@ SELECT
 FROM
   stored_data.pan_tcell_facs_data ptfd
   JOIN cte ON ptfd.uploaded_excel_file_id = cte.uploaded_excel_file_id;
+
 COMMENT ON VIEW stored_data.vw_pan_tcell_facs_data_shiny IS 'View to join the metadata to the associated FACS data for presentation in Shiny pages.'
+
+CREATE OR REPLACE FUNCTION isnumeric(text) RETURNS BOOLEAN AS $$
+DECLARE x NUMERIC;
+BEGIN
+    x = $1::NUMERIC;
+    RETURN TRUE;
+EXCEPTION WHEN others THEN
+    RETURN FALSE;
+END;
+$$
+STRICT
+LANGUAGE plpgsql IMMUTABLE;
+COMMENT ON FUNCTION isnumeric(text) IS $qq$ Purpose: Check if the given argument is a number. Used to check substrings created by splitting strings into arrays. Copied verbatim from this source: http://stackoverflow.com/questions/16195986/isnumeric-with-postgresql. $qq$;
