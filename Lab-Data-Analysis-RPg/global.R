@@ -10,8 +10,8 @@ pool <- dbPool(
   dbname = "facs_analysis_test",
   host = "localhost",
   user = "micktusker",
-  port = 5432,
-  password = ""
+  port = 5433,
+  password = "Ritalin0112!"
 )
 
 pg.conn <- poolCheckout(pool)
@@ -29,4 +29,23 @@ get.pan.tcell.data <- function(datatype.name, experiment.name) {
   sql <- sprintf(tmpl, experiment.name, datatype.name)
   df <- dbGetQuery(pg.conn, sql)
   return(df)
+}
+
+get.pan.tcell.data.subset <- function(datatype.name, experiment.name, donor.day, antibody.id) {
+  tmpl <-  "SELECT
+              uploaded_excel_file_basename donor_day,
+              sample_identifier,
+              antibody_id,
+              antibody_concentration,
+              replicates, replicates_avg 
+             FROM
+               get_single_datatype('%s', '%s')
+             WHERE
+               uploaded_excel_file_basename = '%s'
+               AND
+                 antibody_id = '%s'
+             "
+  sql <- sprintf(tmpl, experiment.name, datatype.name, donor.day, antibody.id)
+  df <- dbGetQuery(pg.conn, sql)
+  return(df)  
 }
