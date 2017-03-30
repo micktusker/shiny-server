@@ -237,8 +237,10 @@ $$
 LANGUAGE plpgsql;
 SELECT * FROM get_single_datatype_arrays('TSK01_vitro_024', 'viable_cells');
 COMMENT ON FUNCTION get_single_datatype_arrays(TEXT, TEXT) IS $qq$Purpose: This is the first of two functions to return a table of results to clients. It returns results for the given column. Example call: SELECT * FROM get_single_datatype_arrays('TSK01_vitro_024', 'viable_cells'); $qq$; 
+
+
 DROP FUNCTION get_single_datatype(TEXT, TEXT);
-CREATE OR REPLACE FUNCTION get_single_datatype(p_column_name TEXT, p_experiment_name TEXT)
+CREATE OR REPLACE FUNCTION get_single_datatype(p_experiment_name TEXT, p_column_name TEXT)
 RETURNS TABLE(uploaded_excel_file_basename TEXT, sample_identifier TEXT, antibody_id TEXT, 
               antibody_concentration REAL, replicates TEXT, replicates_avg REAL)
 AS
@@ -253,7 +255,7 @@ BEGIN
     ARRAY_TO_STRING(f.replicates, ', ') replicates,
     f.replicates_avg
   FROM
-    get_single_datatype_arrays(p_column_name, p_experiment_name) f;
+    get_single_datatype_arrays(p_experiment_name, p_column_name) f;
 END;
 $$
 LANGUAGE plpgsql;

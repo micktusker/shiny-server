@@ -8,16 +8,16 @@ library(DBI)
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
   dbname = "facs_analysis_test",
-  host = "localhost",
+  host = "192.168.49.15",
   user = "micktusker",
-  port = 5433,
-  password = "Ritalin0112!"
+  port = 5432,
+  password = ""
 )
 
 pg.conn <- poolCheckout(pool)
 
 # Call a stored procedure to get a Pan T Cell Data for a specified datatype.name.
-get.pan.tcell.data <- function(datatype.name, experiment.name) {
+get.pan.tcell.data <- function(experiment.name, datatype.name) {
   tmpl <-  "SELECT
               uploaded_excel_file_basename donor_day,
               sample_identifier,

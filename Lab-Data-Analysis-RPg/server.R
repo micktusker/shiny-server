@@ -5,12 +5,12 @@ shinyServer(function(input, output) {
   experiment.name <- reactive({input$experiment_name})
   plot.title <- reactive({input$plot_title})
   observeEvent(input$submit, {
-      df <- get.pan.tcell.data(data.column(), experiment.name())
+      df <- get.pan.tcell.data(experiment.name(), data.column())
       output$result <- DT::renderDataTable(df)
       output$barplot <- renderPlot(barplot(df$replicates_avg, main = plot.title(), names.arg = df$sample_identifier, las = 2, cex.names=0.3, space = 0))
   })
   output$dynamicFilters <- renderUI({
-    df <- get.pan.tcell.data(data.column(), experiment.name())
+    df <- get.pan.tcell.data(experiment.name(), data.column())
     donor.day.vals <- unique(df$donor_day)
     antibody.ids <- unique(df$antibody_id)
     tagList(
@@ -22,7 +22,7 @@ shinyServer(function(input, output) {
   antibody.id <- reactive(input$antibody_id_list)
   observeEvent(input$subset, {
     #print(donor.day())
-    df <- get.pan.tcell.data(data.column(), experiment.name())
+    df <- get.pan.tcell.data(experiment.name(), data.column())
     #print(names(df))
     df.subset <- df[df$donor_day %in% donor.day() & df$antibody_id %in% antibody.id(),]
     output$result <- DT::renderDataTable(df.subset)
