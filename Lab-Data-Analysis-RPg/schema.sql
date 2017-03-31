@@ -292,7 +292,7 @@ LANGUAGE plpgsql;
 COMMENT ON FUNCTION get_uploaded_excel_basename(TEXT) IS $qq$ Purpose: To extract the basename from a full path for an uploaded Excel file. Argument: uploaded_excel_file_id in table stored_data.loaded_files_metadata. The basename is used to filter results in the R Shiny interface. Example: SELECT get_uploaded_excel_basename('15c4ad591200b27689ab58c22e91a876');$qq$;
 
 
--- Shiny View creattion
+-- Shiny View creation
 CREATE OR REPLACE VIEW stored_data.vw_pan_tcell_facs_data_shiny AS
 WITH cte AS
   (SELECT
@@ -306,7 +306,6 @@ SELECT
   cte.*,
   ptfd.raw_data_name,
   ptfd.sample_identifier,
-  (STRING_TO_ARRAY(ptfd.sample_identifier, E'_'))[ARRAY_LENGTH((STRING_TO_ARRAY(ptfd.sample_identifier, E'_')), 1)] antibody_id,
   CASE
     WHEN isnumeric((STRING_TO_ARRAY(ptfd.sample_identifier, E'_'))[ARRAY_LENGTH((STRING_TO_ARRAY(ptfd.sample_identifier, E'_')), 1) -1]) THEN
       ((STRING_TO_ARRAY(ptfd.sample_identifier, E'_'))[ARRAY_LENGTH((STRING_TO_ARRAY(ptfd.sample_identifier, E'_')), 1) -1])::REAL
@@ -346,3 +345,19 @@ $$
 STRICT
 LANGUAGE plpgsql IMMUTABLE;
 COMMENT ON FUNCTION isnumeric(text) IS $qq$ Purpose: Check if the given argument is a number. Used to check substrings created by splitting strings into arrays. Copied verbatim from this source: http://stackoverflow.com/questions/16195986/isnumeric-with-postgresql. $qq$;
+
+
+-- Called by Excel VBA to load assay data into PostgreSQL
+CREATE OR REPLACE FUNCTION load_transit_tmp(p_row_values TEXT)
+RETURNS TEXT
+AS
+$$
+BEGIN
+  INSERT INTO transit_tmp(data_row) VALUES(p_row_values);
+  RETURN '1';
+EXCEPTION
+  WHEN OTHERS THEN RETURN SQLERRM;
+END;
+$$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION load_transit_tmp(TEXT) IS 'Load the given value into table "transit_tmp". Return 1 as a string on success, otherwise return the error message. Loaded value is expected to be a tab-separated string.';
