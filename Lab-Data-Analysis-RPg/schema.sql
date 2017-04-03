@@ -134,14 +134,12 @@ DECLARE
   l_element TEXT := TRIM(l_elements[p_index_position]);
   l_element_as_real REAL;
 BEGIN
-  RAISE NOTICE '%', l_element;
   IF isnumeric(l_element) THEN
     l_element_as_real := CAST(l_element AS REAL);
   ELSIF LENGTH(l_element) < 1 THEN
     l_element_as_real := NULL;
   ELSE
     RAISE EXCEPTION 'Cannot coerce given value to REAL or NULL!';
-    
   END IF;
   RETURN l_element_as_real;
 END;
