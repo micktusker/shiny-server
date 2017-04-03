@@ -125,6 +125,55 @@ $$
 LANGUAGE plpgsql;
 COMMENT ON FUNCTION add_row_to_loaded_files_metadata() IS $qq$Purpose: To take the metadata from the uploaded file in "transit_tmp" and extract each of the metadata values from the leading rows using the function "get_metadata_value()" and then insert them into "loaded_files_metadata". It then returns the MD5 value for the source Excel file (the table PK). Example: SELECT add_row_to_loaded_files_metadata();$qq$;
 
+CREATE OR REPLACE FUNCTION get_real_array_element_at_index(p_tab_separated_input TEXT, p_index_position INTEGER)
+RETURNS REAL
+AS
+$$
+DECLARE
+  l_elements TEXT[] := STRING_TO_ARRAY(p_tab_separated_input, E'\t');
+  l_element TEXT := TRIM(l_elements[p_index_position]);
+  l_element_as_real REAL;
+BEGIN
+  RAISE NOTICE '%', l_element;
+  IF isnumeric(l_element) THEN
+    l_element_as_real := CAST(l_element AS REAL);
+  ELSIF LENGTH(l_element) < 1 THEN
+    l_element_as_real := NULL;
+  ELSE
+    RAISE EXCEPTION 'Cannot coerce given value to REAL or NULL!';
+    
+  END IF;
+  RETURN l_element_as_real;
+END;
+$$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION get_real_array_element_at_index(TEXT, INTEGER) IS
+$qq$
+Purpose: Extract REAL numbers from a given tab-delimited string using the given index position integer.
+Return value: The extracted REAL value or NULL if the extracted, trimmed element is an empty string.
+Exception raised if the extracted value is neither numeric or an empty string.
+Testing code:
+DO
+$$
+DECLARE
+  l_tab_sep_elements TEXT := 'ONE	2	3.1		wexford';
+  l_elements TEXT[] := STRING_TO_ARRAY(l_tab_sep_elements, E'\t');
+  l_element_as_real REAL;
+BEGIN
+  FOR i IN 1 .. ARRAY_LENGTH(l_elements, 1) LOOP
+    BEGIN
+      l_element_as_real := get_real_array_element_at_index(l_tab_sep_elements, i);
+      -- RAISE NOTICE '%', l_element_as_real;
+    EXCEPTION
+      WHEN OTHERS THEN 
+        RAISE NOTICE '%', SQLERRM;
+     END;
+  END LOOP;
+END;
+$$
+$qq$;
+
+
 CREATE OR REPLACE FUNCTION upload_pan_tcell_facs_data(p_uploaded_excel_file_id TEXT)
 RETURNS INTEGER
 AS
@@ -139,21 +188,21 @@ BEGIN
       cd4_cell_number, cd8_cell_number, sample_identifier, uploaded_excel_file_id)
   SELECT
     (STRING_TO_ARRAY(data_row, E'\t'))[1] raw_data_name,
-    (STRING_TO_ARRAY(data_row, E'\t'))[2]::REAL viable_cells,
-    (STRING_TO_ARRAY(data_row, E'\t'))[3]::REAL cd4_mfi_cd137,
-    (STRING_TO_ARRAY(data_row, E'\t'))[4]::REAL cd4_mfi_proliferation,
-    (STRING_TO_ARRAY(data_row, E'\t'))[5]::REAL cd4_mfi_cd25,
-    (STRING_TO_ARRAY(data_row, E'\t'))[6]::REAL cd4_percent_proliferation,
-    (STRING_TO_ARRAY(data_row, E'\t'))[7]::REAL cd4_percent_cd25,
-    (STRING_TO_ARRAY(data_row, E'\t'))[8]::REAL cd4_percent_cd137,
-    (STRING_TO_ARRAY(data_row, E'\t'))[9]::REAL cd8_mfi_cd137,
-    (STRING_TO_ARRAY(data_row, E'\t'))[10]::REAL cd8_mfi_proliferation,
-    (STRING_TO_ARRAY(data_row, E'\t'))[11]::REAL cd8_mfi_cd25,
-    (STRING_TO_ARRAY(data_row, E'\t'))[12]::REAL cd8_percent_proliferation,
-    (STRING_TO_ARRAY(data_row, E'\t'))[13]::REAL cd8_percent_cd25,
-    (STRING_TO_ARRAY(data_row, E'\t'))[14]::REAL cd8_percent_cd137,
-    (STRING_TO_ARRAY(data_row, E'\t'))[15]::REAL cd4_cell_number,
-    (STRING_TO_ARRAY(data_row, E'\t'))[16]::REAL cd8_cell_number,
+    get_real_array_element_at_index(data_row, 2) viable_cells,
+    get_real_array_element_at_index(data_row, 3) cd4_mfi_cd137,
+    get_real_array_element_at_index(data_row, 4) cd4_mfi_proliferation,
+    get_real_array_element_at_index(data_row, 5) cd4_mfi_cd25,
+    get_real_array_element_at_index(data_row, 6) cd4_percent_proliferation,
+    get_real_array_element_at_index(data_row, 7) cd4_percent_cd25,
+    get_real_array_element_at_index(data_row, 8) cd4_percent_cd137,
+    get_real_array_element_at_index(data_row, 9) cd8_mfi_cd137,
+    get_real_array_element_at_index(data_row, 10) cd8_mfi_proliferation,
+    get_real_array_element_at_index(data_row, 11) cd8_mfi_cd25,
+    get_real_array_element_at_index(data_row, 12) cd8_percent_proliferation,
+    get_real_array_element_at_index(data_row, 13) cd8_percent_cd25,
+    get_real_array_element_at_index(data_row, 14) cd8_percent_cd137,
+    get_real_array_element_at_index(data_row, 15) cd4_cell_number,
+    get_real_array_element_at_index(data_row, 16) cd8_cell_number,
     (STRING_TO_ARRAY(data_row, E'\t'))[17] sample_identifier,
     p_uploaded_excel_file_id uploaded_excel_file_id
   FROM
@@ -167,7 +216,15 @@ BEGIN
 END;
 $$
 LANGUAGE plpgsql;
-COMMENT ON FUNCTION upload_pan_tcell_facs_data(TEXT) IS $qq$Purpose: Insert all the data rows loaded into "transit_tmp" from the VBA code output file into table "pan_tcell_facs_data". Example: SELECT upload_pan_tcell_facs_data('7f07b8c8f7179e40aae58fc6b3713445'); Returns the number of rows inserted.$qq$;
+COMMENT ON FUNCTION upload_pan_tcell_facs_data(TEXT) IS $qq$
+Purpose: Insert all the data rows loaded into "transit_tmp" from the VBA code output file into table "pan_tcell_facs_data".
+Arguments: The hash code for the path of the uploaded Excel file.
+Return value: The number of rows inserted into the table.
+Notes:
+  This function is not usually called directly but instead is called by "load_facs_data_tables" which also transfers the metadata.
+  Calls function "get_real_array_element_at_index(TEXT, INTEGER)" to perform the REAL cast for all columns that contain either numeric data
+ or empty strings.
+$qq$;
 
 CREATE OR REPLACE FUNCTION load_facs_data_tables()
 RETURNS JSONB
