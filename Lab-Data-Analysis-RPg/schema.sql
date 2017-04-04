@@ -416,3 +416,46 @@ END;
 $$
 LANGUAGE plpgsql;
 COMMENT ON FUNCTION load_transit_tmp(TEXT) IS 'Load the given value into table "transit_tmp". Return 1 as a string on success, otherwise return the error message. Loaded value is expected to be a tab-separated string.';
+
+DROP VIEW IF EXISTS stored_data.vw_pan_tcell_facs_data_columns;
+CREATE OR REPLACE VIEW stored_data.vw_pan_tcell_facs_data_columns AS
+SELECT
+  column_name data_column_name
+FROM
+  information_schema.columns
+WHERE
+  table_schema = 'stored_data'
+  AND
+    table_name = 'pan_tcell_facs_data'
+  AND
+    data_type = 'real'
+ORDER BY 1;
+COMMENT ON VIEW stored_data.vw_pan_tcell_facs_data_columns IS $qq$
+Purpose: Provides a list of columns for the pan T cell FACS data to the Shiny UI drop-down list that can be queried.
+$qq$;
+
+CREATE OR REPLACE FUNCTION delete_mean_and_sd()
+RETURNS INTEGER
+AS
+$$
+DECLARE
+  l_delete_rowcount INTEGER;
+BEGIN
+  DELETE
+  FROM
+    stored_data.pan_tcell_facs_data
+  WHERE
+    raw_data_name IN('Mean', 'SD');
+  GET DIAGNOSTICS l_delete_rowcount := ROW_COUNT;
+  RETURN l_delete_rowcount;
+END;
+$$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION delete_mean_and_sd() IS
+$qq$
+Purpose: Delete any rows in table "stored_data.pan_tcell_facs_data" where the raw data name is either "SD" or "Mean".
+Arguments: None.
+Returns: The number of rows deleted.
+These are added by the FACS analysis software and are not needed but they appear in the loaded spreadsheets.
+Example invocation: SELECT delete_mean_and_sd();
+$qq$;

@@ -11,11 +11,22 @@ pool <- dbPool(
   host = "192.168.49.15",
   user = "micktusker",
   port = 5432,
-  password = ""
+  password = "Ritalin0112!"
 )
 
 pg.conn <- poolCheckout(pool)
 
+# Provides a list available experiments to the UI
+get.experiments <- function(){
+  sql <- "SELECT DISTINCT experiment_name FROM stored_data.loaded_files_metadata"
+  experiments <- as.vector(dbGetQuery(pg.conn, sql))
+}
+
+# Provides a list of available data types to the UI.
+get.data.columns <- function(){
+  sql <- "SELECT data_column_name FROM stored_data.vw_pan_tcell_facs_data_columns"
+  data.columns <- as.vector(dbGetQuery(pg.conn, sql))
+}
 # Call a stored procedure to get a Pan T Cell Data for a specified datatype.name.
 get.pan.tcell.data <- function(experiment.name, datatype.name) {
   tmpl <-  "SELECT
@@ -25,27 +36,12 @@ get.pan.tcell.data <- function(experiment.name, datatype.name) {
               antibody_concentration,
               replicates, replicates_avg 
             FROM
-              get_single_datatype('%s', '%s')"
+              get_single_datatype('%s', '%s')
+            ORDER BY 
+              antibody_id,
+              antibody_concentration"
   sql <- sprintf(tmpl, experiment.name, datatype.name)
   df <- dbGetQuery(pg.conn, sql)
-  return(df)
 }
 
-get.pan.tcell.data.subset <- function(datatype.name, experiment.name, donor.day, antibody.id) {
-  tmpl <-  "SELECT
-              uploaded_excel_file_basename donor_day,
-              sample_identifier,
-              antibody_id,
-              antibody_concentration,
-              replicates, replicates_avg 
-             FROM
-               get_single_datatype('%s', '%s')
-             WHERE
-               uploaded_excel_file_basename = '%s'
-               AND
-                 antibody_id = '%s'
-             "
-  sql <- sprintf(tmpl, experiment.name, datatype.name, donor.day, antibody.id)
-  df <- dbGetQuery(pg.conn, sql)
-  return(df)  
-}
+
