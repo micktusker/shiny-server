@@ -8,7 +8,8 @@ shinyServer(function(input, output) {
       df <- get.pan.tcell.data(experiment.name(), data.column())
       output$result <- DT::renderDataTable(df)
       output$barplot <- renderPlot(barplot(df$replicates_avg, main = plot.title(), names.arg = df$sample_identifier, las = 2, cex.names=0.3, space = 0))
-  })
+      output$ggbarplot <- renderPlot(ggplot(df, aes(x=sample_identifier, y=replicates_avg, fill=antibody_id)) + geom_bar(stat="identity"))
+})
   output$dynamicFilters <- renderUI({
     df <- get.pan.tcell.data(experiment.name(), data.column())
     donor.day.vals <- unique(df$donor_day)
@@ -27,9 +28,8 @@ shinyServer(function(input, output) {
     df.subset <- df[df$donor_day %in% donor.day() & df$antibody_id %in% antibody.id(),]
     output$result <- DT::renderDataTable(df.subset)
     output$barplot <- renderPlot(barplot(df.subset$replicates_avg, main = plot.title(), names.arg = df.subset$sample_identifier, las = 2, cex.names=0.5, space = 0, xpd=TRUE, srt = 45))
-    #output$barplot <- renderPlot(barchart(df.subset$replicates_avg~df.subset$donor_day,data=df.subset,groups=df.subset$antibody_id, scales=list(x=list(rot=90,cex=0.8))))
+    output$ggbarplot <- renderPlot(ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg, fill=antibody_id)) + geom_bar(stat="identity"))
+    output$ggbarplotfacet1 <- renderPlot(ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg, fill=antibody_id)) + geom_bar(stat="identity") + facet_grid(donor_day~.))
+    output$ggbarplotfacet2 <- renderPlot(ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg)) + geom_bar(stat="identity") + facet_grid(donor_day~antibody_id))
   })
-  output$downloadPlot <- downloadHandler({
-    print('Clicked!')
-    })
 })

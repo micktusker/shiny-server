@@ -16,7 +16,7 @@ pool <- dbPool(
 
 pg.conn <- poolCheckout(pool)
 
-# Provides a list available experiments to the UI
+# Provides a list of available experiments to the UI
 get.experiments <- function(){
   sql <- "SELECT DISTINCT experiment_name FROM stored_data.loaded_files_metadata"
   experiments <- as.vector(dbGetQuery(pg.conn, sql))
@@ -42,6 +42,8 @@ get.pan.tcell.data <- function(experiment.name, datatype.name) {
               antibody_concentration"
   sql <- sprintf(tmpl, experiment.name, datatype.name)
   df <- dbGetQuery(pg.conn, sql)
+  df$antibody_id <- trimws(df$antibody_id)
+  return(df)
 }
 
 

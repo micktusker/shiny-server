@@ -12,5 +12,8 @@ shinyUI(fluidPage(
   ),
   br(),
   mainPanel(plotOutput("barplot")),
+  mainPanel(plotOutput("ggbarplot")),
+  mainPanel(plotOutput("ggbarplotfacet1")),
+  mainPanel(plotOutput("ggbarplotfacet2")),
   mainPanel(DT::dataTableOutput("result"))
 ))
