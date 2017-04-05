@@ -11,7 +11,7 @@ pool <- dbPool(
   host = "192.168.49.15",
   user = "micktusker",
   port = 5432,
-  password = "Ritalin0112!"
+  password = ""
 )
 
 pg.conn <- poolCheckout(pool)
