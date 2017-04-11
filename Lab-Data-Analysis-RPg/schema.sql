@@ -459,3 +459,32 @@ Returns: The number of rows deleted.
 These are added by the FACS analysis software and are not needed but they appear in the loaded spreadsheets.
 Example invocation: SELECT delete_mean_and_sd();
 $qq$;
+
+CREATE OR REPLACE FUNCTION get_cd3_concentration(p_sample_id  TEXT)
+RETURNS REAL
+AS
+$$
+DECLARE
+  l_cd3_concentration TEXT;
+  l_cd3_concentration_as_real REAL;
+BEGIN
+  SELECT (REGEXP_MATCHES(p_sample_id, '^[0-9.]*'))[1] INTO l_cd3_concentration;
+  IF isnumeric(l_cd3_concentration) THEN
+    l_cd3_concentration_as_real := CAST(l_cd3_concentration AS REAL);
+  ELSIF LENGTH(l_cd3_concentration) < 1 THEN
+    l_cd3_concentration_as_real := NULL;
+  ELSE
+    RAISE EXCEPTION 'Cannot extract an antibody concentration!';
+  END IF;
+  RETURN l_cd3_concentration_as_real;
+END;
+$$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION get_cd3_concentration(TEXT) IS
+$qq$
+Purpose: To extract the CD3 antibody concentration from the given identifier and return it as REAL.
+Assumes: The CD3 antibody concentration makes up the first part of the sample identifier.
+Example Invocation: SELECT get_cd3_concentration('0.5CD3_2.5_CD28');
+$qq$;
+
+

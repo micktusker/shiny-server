@@ -11,8 +11,6 @@ shinyUI(fluidPage(
     actionButton("subset", "Subset", class = "btn-primary")
   ),
   br(),
-  mainPanel(plotOutput("barplot")),
-  mainPanel(plotOutput("ggbarplot")),
   mainPanel(plotOutput("ggbarplotfacet1")),
   mainPanel(plotOutput("ggbarplotfacet2")),
   mainPanel(DT::dataTableOutput("result"))

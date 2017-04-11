@@ -8,7 +8,7 @@ library(DBI)
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
   dbname = "facs_analysis_test",
-  host = "192.168.49.15",
+  host = "localhost",
   user = "micktusker",
   port = 5432,
   password = ""
@@ -32,6 +32,7 @@ get.pan.tcell.data <- function(experiment.name, datatype.name) {
   tmpl <-  "SELECT
               uploaded_excel_file_basename donor_day,
               sample_identifier,
+              get_cd3_concentration(sample_identifier) cd3_concentration,
               antibody_id,
               antibody_concentration,
               replicates, replicates_avg 

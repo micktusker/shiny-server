@@ -14,22 +14,27 @@ shinyServer(function(input, output) {
     df <- get.pan.tcell.data(experiment.name(), data.column())
     donor.day.vals <- unique(df$donor_day)
     antibody.ids <- unique(df$antibody_id)
+    cd3.concs <- unique(df$cd3_concentration)
+    antibody.concs <- unique(df$antibody_concentration)
     tagList(
       selectInput('donor_day_list', label = "Select donor day", choices = donor.day.vals, multiple = TRUE),
-      selectInput('antibody_id_list', label = "Select antibody ID", choices = antibody.ids, multiple = TRUE)
+      selectInput('antibody_id_list', label = "Select antibody ID", choices = antibody.ids, multiple = TRUE),
+      selectInput('cd3_concs_list', label = "Select CD3 concentrations", choices = cd3.concs, multiple = TRUE),
+      selectInput('antibody_concs_list', label = "Select antibody concentrations", choices = antibody.concs, multiple = TRUE)
     )
   })
   donor.day <- reactive({input$donor_day_list})
   antibody.id <- reactive(input$antibody_id_list)
+  cd3.conc <- reactive(input$cd3_concs_list)
+  antibody.conc <- reactive(input$antibody_concs_list)
   observeEvent(input$subset, {
-    #print(donor.day())
+    plot.title.value <- plot.title()
     df <- get.pan.tcell.data(experiment.name(), data.column())
-    #print(names(df))
-    df.subset <- df[df$donor_day %in% donor.day() & df$antibody_id %in% antibody.id(),]
+    df.subset <- df[df$donor_day %in% donor.day() & df$antibody_id %in% antibody.id() & df$cd3_concentration %in% cd3.conc() & df$antibody_concentration %in% antibody.conc(),]
     output$result <- DT::renderDataTable(df.subset)
-    output$barplot <- renderPlot(barplot(df.subset$replicates_avg, main = plot.title(), names.arg = df.subset$sample_identifier, las = 2, cex.names=0.5, space = 0, xpd=TRUE, srt = 45))
-    output$ggbarplot <- renderPlot(ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg, fill=antibody_id)) + geom_bar(stat="identity"))
-    output$ggbarplotfacet1 <- renderPlot(ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg, fill=antibody_id)) + geom_bar(stat="identity") + facet_grid(donor_day~.))
-    output$ggbarplotfacet2 <- renderPlot(ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg)) + geom_bar(stat="identity") + facet_grid(donor_day~antibody_id))
+    facet1 <- ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg, fill=antibody_id)) + geom_bar(stat="identity") + ggtitle(plot.title.value) + theme(axis.text.x = element_text(angle = 90, vjust=0.5, hjust=0)) + facet_grid(donor_day~.)
+    output$ggbarplotfacet1 <- renderPlot(facet1)
+    facet2 <- ggplot(df.subset, aes(x=sample_identifier, y=replicates_avg)) + geom_bar(stat="identity") + theme(axis.text.x = element_text(size = 6, angle = 90, vjust=0.5, hjust=0)) + facet_grid(donor_day~antibody_id)
+    output$ggbarplotfacet2 <- renderPlot(facet2)
   })
 })
