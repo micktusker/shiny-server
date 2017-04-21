@@ -8,10 +8,10 @@ library(DBI)
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
   dbname = "facs_analysis_test",
-  host = "localhost",
+  host = "192.168.49.15",
   user = "micktusker",
   port = 5432,
-  password = ""
+  password = "Ritalin0112!"
 )
 
 pg.conn <- poolCheckout(pool)
@@ -35,7 +35,8 @@ get.pan.tcell.data <- function(experiment.name, datatype.name) {
               get_cd3_concentration(sample_identifier) cd3_concentration,
               antibody_id,
               antibody_concentration,
-              replicates, replicates_avg 
+              replicates, 
+              replicates_avg 
             FROM
               get_single_datatype('%s', '%s')
             ORDER BY 

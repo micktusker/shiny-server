@@ -487,4 +487,74 @@ Assumes: The CD3 antibody concentration makes up the first part of the sample id
 Example Invocation: SELECT get_cd3_concentration('0.5CD3_2.5_CD28');
 $qq$;
 
+-- Functions added for doing basic stats on results that are returned in the data frmae
+
+CREATE OR REPLACE FUNCTION get_array_std_err_mean(p_values REAL[])
+RETURNS REAL
+AS
+$$
+DECLARE
+  l_array_stddev REAL := get_array_stddev(p_values);
+  l_array_element_count INTEGER := ARRAY_LENGTH(p_values, 1);
+  l_std_err_mean REAL;
+BEGIN
+  l_std_err_mean := l_array_stddev/SQRT(l_array_element_count);
+  RETURN l_std_err_mean;
+END;
+$$
+LANGUAGE plpgsql
+  IMMUTABLE;
+COMMENT ON FUNCTION get_array_std_err_mean(REAL[]) IS
+$qq$
+Purpose: To calculate and return the standard error of the mean for an array of real number values.
+Example call: SELECT get_array_std_err_mean(ARRAY[80, 77.4]);
+Depends on: get_array_stddev(REAL[]) to calculate the sample standard deviation.
+$qq$;
+
+CREATE OR REPLACE FUNCTION get_array_stddev(p_values REAL[])
+RETURNS REAL
+AS
+$$
+DECLARE
+  l_array_stddev REAL;
+BEGIN
+  WITH cte AS (
+    SELECT UNNEST(p_values) array_value
+  )
+  SELECT
+    STDDEV_SAMP(array_value) INTO l_array_stddev
+  FROM
+    cte;
+  RETURN l_array_stddev;
+END;
+$$
+LANGUAGE plpgsql
+  IMMUTABLE;
+
+COMMENT ON FUNCTION get_array_stddev(REAL[]) IS
+$qq$
+Purpose: To calculate the sample standard deviation for a given array of real numbers.
+Example call: SELECT get_array_stddev(ARRAY[80, 77.4]);
+$qq$;
+
+
+CREATE OR REPLACE FUNCTION get_delimited_str_as_numeric_array(p_delimited_str TEXT)
+RETURNS REAL[]
+AS
+$$
+BEGIN
+  RETURN REGEXP_SPLIT_TO_ARRAY(p_delimited_str, E'[ ,]+')::REAL[];
+EXCEPTION WHEN OTHERS THEN
+    RETURN NULL;
+END;
+$$
+LANGUAGE plpgsql
+  IMMUTABLE;
+
+COMMENT ON FUNCTION get_delimited_str_as_numeric_array(TEXT) IS
+$qq$
+Purpose: Return the replicates text as an array of real numbers.
+Example call: SELECT get_delimited_str_as_numeric_array('80, 76.3');
+Note: Returns NULL if the extracted values cannot be converted to real numbers
+$qq$;
 
