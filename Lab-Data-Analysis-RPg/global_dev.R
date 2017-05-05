@@ -1,4 +1,4 @@
-ibrary(pool)
+library(pool)
 library(tidyverse)
 
 # 
@@ -11,7 +11,7 @@ get.replicates.as.numeric.vector <- function(replicates.as.str) {
 get.conf.ints.for.replicates <- function(replicates.as.str, list.index.to.return) {
   replicates.as.numeric.vector <- get.replicates.as.numeric.vector(replicates.as.str)
   if(length(replicates.as.numeric.vector) < 2) return(NA)
-  tryCatch(result <- t.test(replicates.as.numeric.vector), error = function(e) {return(NULL)})
+  result <- t.test(replicates.as.numeric.vector)
   conf.ints <- list(lower = result$conf.int[1], upper = result$conf.int[2])
   return(conf.ints[[list.index.to.return]])
 }

@@ -224,25 +224,6 @@ Notes:
  or empty strings.
 $qq$;
 
-CREATE OR REPLACE FUNCTION load_facs_data_tables()
-RETURNS JSONB
-AS
-$$
-DECLARE
-  l_uploaded_excel_file_id TEXT;
-  l_rowcount_inserted INTEGER;
-  l_retvals JSONB;
-BEGIN
-  l_uploaded_excel_file_id := add_row_to_loaded_files_metadata();
-  l_rowcount_inserted := upload_pan_tcell_facs_data(l_uploaded_excel_file_id );
-  TRUNCATE TABLE public.transit_tmp;
-  l_retvals := ('{"uploaded_excel_file_id": ' || '"' || l_uploaded_excel_file_id || '"' || 
-    ', "rowcount_inserted": ' || l_rowcount_inserted || '}')::JSONB;
-  RETURN l_retvals;
-END;
-$$
-LANGUAGE plpgsql;
-COMMENT ON FUNCTION load_facs_data_tables() IS $qq$Purpose: Wraps functions to load FACS data tables. Returns summary as JSONB. Example:  SELECT load_facs_data_tables();$qq$;
 
 
 -- Stored procedure code for returning data sets to R
@@ -558,3 +539,134 @@ Example call: SELECT get_delimited_str_as_numeric_array('80, 76.3');
 Note: Returns NULL if the extracted values cannot be converted to real numbers
 $qq$;
 
+-- ###########################
+-- New approach to data loading.
+-- Make the schema more flexible by allowing any number of columns in any order in the loaded Excel file provided that the column names are defined
+-- in a row immediately preciding the data rows.
+
+CREATE OR REPLACE FUNCTION get_datatype_column_names(p_rownum INTEGER)
+RETURNS TEXT[]
+AS 
+$$
+DECLARE
+  l_data_row TEXT;
+  l_datatype_column_names TEXT[];
+BEGIN
+  SELECT
+    data_row INTO l_data_row
+  FROM
+    transit_tmp
+  OFFSET  
+    p_rownum
+  LIMIT 1;
+  l_datatype_column_names := STRING_TO_ARRAY(l_data_row, E'\t');
+  RETURN l_datatype_column_names;
+END;
+$$
+LANGUAGE plpgsql;
+SELECT get_datatype_column_names(10);
+COMMENT ON FUNCTION get_datatype_column_names(INTEGER) IS
+$qq$
+Purpose:
+For each loaded Excel file return the column name values as a text array using the "transit_tmp" table.
+It uses the integer argument to identify the row to return so calling code must ensure that the correct row number is given.
+These returned values are used:
+1. Record the column names and column order for an uploaded Excel file in table "stored_data.loaded_file_datatype_column_names"
+2. Used as the keys in the JSONB field in the table "stored_data.pan_tcell_facs_data_json".
+$qq$;
+
+-- http://stackoverflow.com/questions/22339628/cursor-based-records-in-postgresql
+-- https://www.postgresql.org/docs/9.5/static/functions-json.html
+DROP FUNCTION IF EXISTS process_data_rows(INTEGER, TEXT);
+CREATE OR REPLACE FUNCTION process_data_rows(p_data_first_rownum INTEGER, p_uploaded_excel_file_id TEXT)
+RETURNS INTEGER
+AS
+$$
+DECLARE
+  l_processed_rowcount INTEGER := 0; -- Make sure to initialize or it's assigned NULL and will then be returned as NULL!!
+  l_datatype_column_names TEXT[] := get_datatype_column_names(p_data_first_rownum - 1);
+  l_rec RECORD;
+  l_row_elements TEXT[];
+  l_row_as_jsonb JSONB;
+BEGIN
+  INSERT INTO stored_data.loaded_file_datatype_column_names(uploaded_excel_file_id, datatype_column_names) 
+    VALUES(p_uploaded_excel_file_id, l_datatype_column_names);
+  FOR l_rec IN SELECT data_row FROM transit_tmp OFFSET p_data_first_rownum
+  LOOP
+    l_processed_rowcount := l_processed_rowcount + 1;
+    l_row_elements := STRING_TO_ARRAY(l_rec.data_row, E'\t');
+    l_row_as_jsonb := JSONB_OBJECT(l_datatype_column_names, l_row_elements);
+    INSERT INTO stored_data.pan_tcell_facs_data_json(uploaded_excel_file_id, data_name_value) VALUES(p_uploaded_excel_file_id, l_row_as_jsonb);
+  END LOOP;
+  RETURN l_processed_rowcount;
+END;
+$$
+LANGUAGE plpgsql
+  SECURITY DEFINER;
+COMMENT ON FUNCTION process_data_rows(INTEGER, TEXT) IS
+$qq$
+Purpose: 
+Upload data rows from "tramnnsit_tmp" to two tables:
+1. JSONB into table "stored_data.pan_tcell_facs_data_json"
+2. The columns used in the JSON keys loaded as an array into table "stored_data.loaded_file_datatype_column_names"
+Note:
+This function is not called directly but is called by "load_facs_data_tables" which provides the goreign key values
+  to be used in both of the above tables.
+Return:
+The number of of data rows processed.
+$qq$;
+SELECT process_data_rows(11, 'abcdefghijklmopqrstuvwxyz');
+
+DROP TABLE IF EXISTS stored_data.pan_tcell_facs_data_json;
+CREATE TABLE stored_data.pan_tcell_facs_data_json(
+  pan_tcell_facs_data_json_id SERIAL PRIMARY KEY,
+  uploaded_excel_file_id TEXT NOT NULL,
+  data_name_value JSONB,
+  CONSTRAINT pan_tcell_facs_data_json_fk FOREIGN KEY(uploaded_excel_file_id)
+    REFERENCES stored_data.loaded_files_metadata(uploaded_excel_file_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE);
+COMMENT ON TABLE stored_data.pan_tcell_facs_data_json IS
+$qq$
+Contains all the Pan T Cell assay data stored as JSONB.
+$qq$;
+
+DROP TABLE IF EXISTS stored_data.loaded_file_datatype_column_names;    
+CREATE TABLE stored_data.loaded_file_datatype_column_names(
+  uploaded_excel_file_id TEXT,
+  datatype_column_names TEXT[],
+  CONSTRAINT loaded_file_datatype_column_names_fk FOREIGN KEY(uploaded_excel_file_id)
+    REFERENCES stored_data.loaded_files_metadata(uploaded_excel_file_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE);
+COMMENT ON TABLE stored_data.loaded_file_datatype_column_names IS
+$qq$
+Stores the data column headings as an for each loaded Excel file.
+$qq$;
+
+CREATE OR REPLACE FUNCTION load_facs_data_tables()
+RETURNS JSONB
+AS
+$$
+DECLARE
+  l_uploaded_excel_file_id TEXT;
+  l_rowcount_inserted INTEGER;
+  l_DATA_FIRST_ROWNUM INTEGER := 11;
+  l_retvals JSONB;
+BEGIN
+  l_uploaded_excel_file_id := add_row_to_loaded_files_metadata();
+  l_rowcount_inserted := process_data_rows(l_DATA_FIRST_ROWNUM, l_uploaded_excel_file_id );
+  TRUNCATE TABLE public.transit_tmp;
+  l_retvals := ('{"uploaded_excel_file_id": ' || '"' || l_uploaded_excel_file_id || '"' || 
+    ', "rowcount_inserted": ' || l_rowcount_inserted || '}')::JSONB;
+  RETURN l_retvals;
+END;
+$$
+LANGUAGE plpgsql;
+COMMENT ON FUNCTION load_facs_data_tables() IS 
+$qq$
+Purpose: 
+Wraps functions to load FACS data tables. Returns summary as JSONB. 
+This function is called by the Excel VBA data loading code.
+Example:  SELECT load_facs_data_tables();
+$qq$;
