@@ -670,3 +670,57 @@ Wraps functions to load FACS data tables. Returns summary as JSONB.
 This function is called by the Excel VBA data loading code.
 Example:  SELECT load_facs_data_tables();
 $qq$;
+
+
+CREATE OR REPLACE FUNCTION get_single_datatype_arrays_from_json(p_experiment_name TEXT, p_data_type TEXT)
+RETURNS TABLE(experiment_name TEXT,
+             donor_day TEXT,
+             antibody_id TEXT,
+             assay_value REAL,
+             antibody_concentration REAL)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    metadata.experiment_name,
+    get_uploaded_excel_basename(json_data.uploaded_excel_file_id) donor_day,
+    (string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text))[array_length(string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text), 1)] AS antibody_id,
+    CASE
+      WHEN isnumeric(json_data.data_name_value->>p_data_type) THEN
+        CAST(json_data.data_name_value->>p_data_type AS REAL)
+    ELSE
+      NULL
+    END assay_value,
+    CASE
+      WHEN isnumeric((string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text))[array_length(string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text), 1) - 1]) 
+        THEN (string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text))[array_length(string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text), 1) - 1]::real
+      ELSE NULL::real
+    END AS antibody_concentration
+  FROM
+    stored_data.pan_tcell_facs_data_json json_data
+    JOIN
+      stored_data.loaded_files_metadata metadata
+        ON json_data.uploaded_excel_file_id = metadata.uploaded_excel_file_id
+  WHERE
+    metadata.experiment_name = p_experiment_name;
+END;
+$$
+LANGUAGE plpgsql
+  STABLE
+  SECURITY DEFINER;
+
+COMMENT ON FUNCTION get_single_datatype_arrays_from_json(TEXT, TEXT) IS
+$qq$
+Purpose: Return data for a given experiment name and Pan T cell data type from JSONB type.
+Example call:
+SELECT *
+FROM
+  get_single_datatype_arrays_from_json('TSK01_vitro_024', 'cd4_percent_proliferation');
+$qq$;
+
+
+
+
+
+
