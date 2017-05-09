@@ -673,37 +673,41 @@ $qq$;
 
 
 CREATE OR REPLACE FUNCTION get_single_datatype_arrays_from_json(p_experiment_name TEXT, p_data_type TEXT)
-RETURNS TABLE(experiment_name TEXT,
+RETURNS TABLE(raw_data_name TEXT,
+             sample_identifier TEXT,
+             experiment_name TEXT,
              donor_day TEXT,
              antibody_id TEXT,
-             assay_value REAL,
-             antibody_concentration REAL)
+             antibody_concentration TEXT,
+             cd3_concentration TEXT,
+             assay_value REAL)
 AS
 $$
 BEGIN
   RETURN QUERY
   SELECT
+    json_data.data_name_value->>'raw_data_name' raw_data_name,
+    json_data.data_name_value->>'sample_identifier' sample_identifier,
     metadata.experiment_name,
     get_uploaded_excel_basename(json_data.uploaded_excel_file_id) donor_day,
-    (string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text))[array_length(string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text), 1)] AS antibody_id,
+    (parse_sample_identifier(json_data.data_name_value->>'sample_identifier'))[3] antibody_id,
+    (parse_sample_identifier(json_data.data_name_value->>'sample_identifier'))[2] antibody_concentration,
+    (parse_sample_identifier(json_data.data_name_value->>'sample_identifier'))[1] cd3_concentration,
     CASE
       WHEN isnumeric(json_data.data_name_value->>p_data_type) THEN
         CAST(json_data.data_name_value->>p_data_type AS REAL)
     ELSE
       NULL
-    END assay_value,
-    CASE
-      WHEN isnumeric((string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text))[array_length(string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text), 1) - 1]) 
-        THEN (string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text))[array_length(string_to_array(json_data.data_name_value->>'sample_identifier', '_'::text), 1) - 1]::real
-      ELSE NULL::real
-    END AS antibody_concentration
+    END assay_value
   FROM
     stored_data.pan_tcell_facs_data_json json_data
     JOIN
       stored_data.loaded_files_metadata metadata
         ON json_data.uploaded_excel_file_id = metadata.uploaded_excel_file_id
   WHERE
-    metadata.experiment_name = p_experiment_name;
+    metadata.experiment_name = p_experiment_name
+    AND
+      json_data.data_name_value->>'raw_data_name' NOT IN('Mean', 'SD');
 END;
 $$
 LANGUAGE plpgsql
@@ -718,6 +722,51 @@ SELECT *
 FROM
   get_single_datatype_arrays_from_json('TSK01_vitro_024', 'cd4_percent_proliferation');
 $qq$;
+
+
+CREATE OR REPLACE FUNCTION parse_sample_identifier(p_sample_identifier TEXT)
+RETURNS TEXT[]
+AS
+$$
+DECLARE
+  l_elements TEXT[] := REGEXP_SPLIT_TO_ARRAY(p_sample_identifier, E'_+');
+  l_cd3_ab_conc TEXT;
+  l_ab_conc TEXT;
+  l_batch_num TEXT;
+  l_ab_id TEXT;
+  l_assigned_elements TEXT[];
+BEGIN
+  l_cd3_ab_conc := REPLACE(l_elements[1], 'CD3', '');
+  l_ab_conc := l_elements[2];
+  l_assigned_elements[1] := l_cd3_ab_conc;
+  l_assigned_elements[2] := l_ab_conc;
+  IF ARRAY_LENGTH(l_elements, 1) > 3 THEN
+    l_batch_num := l_elements[3];
+    l_ab_id := l_elements[4];
+    l_assigned_elements[3] := l_ab_id || '_' || l_batch_num;
+  ELSE
+    l_ab_id := l_elements[3];
+    l_assigned_elements[3] := l_ab_id;
+  END IF;
+  RETURN l_assigned_elements;
+END;
+$$
+LANGUAGE plpgsql
+  IMMUTABLE
+  SECURITY DEFINER;
+COMMENT ON FUNCTION parse_sample_identifier(TEXT) IS
+$qq$
+Purpose: Parse the given sample identifier to extract the anti-CD3 antibody concentration, the concentration of the test antibody and the antibody identifier
+itself with the batch number appended if present.
+Returns an array of three elements in the order:
+1: anti-CD3 antibody concentration
+2: the concentration of the test antibody
+3: antibody identifier (+batch number if present)
+Example:
+  SELECT parse_sample_identifier('0.5CD3_10_20161128_TSK011010');
+  SELECT parse_sample_identifier('0.5CD3_2.5_TSK011004-80');
+$qq$;
+
 
 
 
