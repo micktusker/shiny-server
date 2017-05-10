@@ -768,6 +768,34 @@ Example:
 $qq$;
 
 
+CREATE OR REPLACE FUNCTION get_datatypes_for_experiment(p_experiment_name TEXT)
+RETURNS TABLE(datatype TEXT)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT DISTINCT
+    UNNEST(datatypes.datatype_column_names) datatype
+  FROM 
+    stored_data.loaded_files_metadata meta
+    JOIN
+      stored_data.loaded_file_datatype_column_names datatypes
+        ON meta.uploaded_excel_file_id = datatypes.uploaded_excel_file_id
+  WHERE
+    experiment_name = p_experiment_name
+  ORDER BY
+    datatype;
+END;
+$$
+LANGUAGE plpgsql
+  SECURITY DEFINER
+  STABLE;
+  
+COMMENT ON FUNCTION get_datatypes_for_experiment(TEXT) IS
+$qq$
+Purpose: Given an experiment name, return a unique list of data types available for that experiment.
+Example: SELECT datatype FROM get_datatypes_for_experiment('TSK01_vitro_034');
+$qq$;
 
 
 
