@@ -1,10 +1,10 @@
 library(shiny)
 shinyUI(fluidPage(
-  titlePanel("Pan T Cell Assay"),
+  titlePanel("FACS Assays"),
   
   fluidRow(
-    selectInput("data_column", "Select a data column", choice = get.data.columns()),
-    selectInput("experiment_name", "Select an experiment name", choice = get.experiments()),
+    selectInput("assay_type", "Select an assay type", choices = c("Pan T Cell")),
+    selectInput("experiment_name", "Select an experiment name", choices = get.experiments()),
     textInput("plot_title", "Set Plot Title",  ""),
     actionButton("submit", "Submit", class = "btn-primary"),
     uiOutput("dynamicFilters"),
