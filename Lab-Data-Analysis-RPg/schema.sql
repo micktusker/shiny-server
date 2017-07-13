@@ -797,7 +797,140 @@ Purpose: Given an experiment name, return a unique list of data types available 
 Example: SELECT datatype FROM get_datatypes_for_experiment('TSK01_vitro_034');
 $qq$;
 
+CREATE OR REPLACE FUNCTION public.get_element_from_sample_id(p_sample_id TEXT, p_element_index INTEGER)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_sample_id_elements TEXT[] := STRING_TO_ARRAY(p_sample_id, '_');
+BEGIN
+  RETURN l_sample_id_elements[p_element_index];
+END
+$$
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER;
 
+COMMENT ON FUNCTION public.get_element_from_sample_id(TEXT, INTEGER) IS
+$qq$
+Purpose: Split sample identifiers on underscore and return the element for the given array index.
+Example: SELECT public.get_element_from_sample_id('1CD3_10_TSK011004', 3); 
+$qq$;
+
+
+-- ######################################## R Shiny part of Schema #############
+DROP FUNCTION shiny_stored_procs.get_experiment_assay_datatype_dataframe();
+
+CREATE OR REPLACE FUNCTION shiny_stored_procs.get_experiment_assay_datatype_dataframe()
+    RETURNS TABLE(experiment_name TEXT, assay_type TEXT, datatype_name TEXT)
+AS 
+$$
+  SELECT DISTINCT
+    experiment_name,
+    assay_type,
+    UNNEST(datatype_column_names) datatype_name
+  FROM
+    (SELECT
+      lfm.experiment_name,
+      lfm.assay_type,
+      lfdcn.datatype_column_names
+    FROM 
+      stored_data.loaded_file_datatype_column_names lfdcn
+      JOIN stored_data.loaded_files_metadata lfm
+        ON lfdcn.uploaded_excel_file_id = lfm.uploaded_excel_file_id) sq
+  ORDER BY 1;
+$$
+LANGUAGE 'sql'
+STABLE
+SECURITY DEFINER;
+
+COMMENT ON FUNCTION shiny_stored_procs.get_experiment_assay_datatype_dataframe()
+    IS '
+Purpose: Return a mapping table of experiment names, assay types and data type names.
+To be used by the client as a dataframer to populate the Shiny data type name drop-down list.
+Example: SELECT experiment_name, assay_type, datatype_name FROM shiny_stored_procs.get_experiment_assay_datatype_dataframe();
+';
+
+
+CREATE ROLE shiny_reader LOGIN PASSWORD 'readonly';
+GRANT CONNECT ON DATABASE facs_analysis_test TO shiny_reader;
+GRANT USAGE ON SCHEMA shiny_stored_procs TO shiny_reader;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA shiny_stored_procs  TO shiny_reader;
+
+CREATE OR REPLACE FUNCTION shiny_stored_procs.get_experiment_names()
+RETURNS TABLE(experiment_name TEXT)
+AS
+$$
+  SELECT DISTINCT experiment_name FROM stored_data.loaded_files_metadata;
+$$
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER;
+
+COMMENT ON FUNCTION shiny_stored_procs.get_experiment_names() IS
+'Purpose: Return a list of experiments.
+Example: SELECT experiment_name FROM shiny_stored_procs.get_experiment_names();';
+
+CREATE OR REPLACE FUNCTION shiny_stored_procs.get_data_for_experiment_datatype(p_experiment_name TEXT,
+                                                                               p_datatype_name TEXT)
+RETURNS TABLE(donor_day TEXT, 
+              sample_identifier TEXT, 
+              cd3_concentration REAL, 
+              antibody_id TEXT, 
+              antibody_concentration REAL,
+              replicates TEXT,
+              replicates_avg NUMERIC)
+AS
+$$
+SELECT
+  donor_day,
+  sample_identifier,
+  cd3_concentration,
+  antibody_id,
+  antibody_concentration,
+  ARRAY_TO_STRING(ARRAY_AGG(datatype_value), ',') replicates,
+  ROUND(CAST(AVG(datatype_value) AS NUMERIC), 2) replicates_avg
+FROM
+  (SELECT
+    public.get_uploaded_excel_basename(lfm.uploaded_excel_file_id) donor_day,
+    ptfdj.data_name_value->>'sample_identifier' sample_identifier,
+    public.get_cd3_concentration(ptfdj.data_name_value->>'sample_identifier') cd3_concentration,
+    public.get_element_from_sample_id(ptfdj.data_name_value->>'sample_identifier', 3) antibody_id,
+    CASE
+      WHEN public.isnumeric(public.get_element_from_sample_id(ptfdj.data_name_value->>'sample_identifier', 2)) 
+        THEN CAST(public.get_element_from_sample_id(ptfdj.data_name_value->>'sample_identifier', 2) AS REAL)
+      ELSE NULL
+    END antibody_concentration,
+    CASE 
+      WHEN public.isnumeric(ptfdj.data_name_value->>p_datatype_name) 
+        THEN (ptfdj.data_name_value->>p_datatype_name)::REAL
+      ELSE NULL
+    END datatype_value
+  FROM
+    stored_data.pan_tcell_facs_data_json ptfdj
+    JOIN
+      stored_data.loaded_files_metadata lfm
+      ON
+        ptfdj.uploaded_excel_file_id = lfm.uploaded_excel_file_id
+  WHERE
+      lfm.experiment_name = p_experiment_name) sq
+  WHERE
+      LENGTH(sample_identifier) > 1
+GROUP BY
+  donor_day,
+  sample_identifier,
+  cd3_concentration,
+  antibody_id,
+  antibody_concentration;
+$$
+LANGUAGE sql
+SECURITY DEFINER;
+
+COMMENT ON FUNCTION shiny_stored_procs.get_data_for_experiment_datatype(TEXT, TEXT) IS
+$qq$
+Purpose: Returns all data for a given experiment and data type to be used as a dataframe in R Shiny.
+Example: SELECT * FROM shiny_stored_procs.get_data_for_experiment_datatype('TSK01_vitro_025', 'cd4_percent_cd25');
+$qq$;
 
 
 
