@@ -933,4 +933,22 @@ Example: SELECT * FROM shiny_stored_procs.get_data_for_experiment_datatype('TSK0
 $qq$;
 
 
+CREATE OR REPLACE FUNCTION shiny_stored_procs.get_datatype_column_names()
+RETURNS TABLE(datatype_column_name TEXT)
+LANGUAGE 'sql'
+STABLE SECURITY DEFINER
+AS
+$$
 
+  SELECT DISTINCT
+    UNNEST(datatype_column_names) datatype_column_name
+  FROM
+    stored_data.loaded_file_datatype_column_names
+  ORDER BY 1;
+
+$$;
+
+COMMENT ON FUNCTION shiny_stored_procs.get_datatype_column_names()
+    IS 'Return a sorted list for alll column titles loaded into the database.';
+    
+  

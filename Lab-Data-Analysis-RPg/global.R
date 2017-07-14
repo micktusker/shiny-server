@@ -7,9 +7,9 @@ library(DBI)
 # psql -U micktusker -h 127.0.0.1 postgres
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
-  dbname = "facs_analysis_test",
+  dbname = "facs_analysis",
   host = "",
-  user = "shiny_reader",
+  user = "",
   port = 5432,
   password = ""
 )
@@ -20,6 +20,11 @@ pg.conn <- poolCheckout(pool)
 get.experiments <- function(){
   sql <- "SELECT experiment_name FROM shiny_stored_procs.get_experiment_names();"
   experiments <- as.vector(dbGetQuery(pg.conn, sql))
+}
+
+get.datatype.column.names <- function() {
+  sql <- "SELECT datatype_column_name FROM shiny_stored_procs.get_datatype_column_names()"
+  experiment.assay.datatype.dataframe <- dbGetQuery(pg.conn, sql)
 }
 
 get.experiment.assay.datatype.dataframe <- function() {
@@ -35,5 +40,3 @@ get.pan.tcell.data <- function(experiment.name, datatype.name) {
   df$antibody_id <- trimws(df$antibody_id)
   return(df)
 }
-
-
