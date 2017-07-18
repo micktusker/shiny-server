@@ -1,3 +1,5 @@
+library(ggplot2)
+
 shinyServer(function(input, output) {
   data.column <- reactive({input$datatype_column_name})
   experiment.name <- reactive({input$experiment_name})
