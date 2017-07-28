@@ -7,10 +7,10 @@ library(DBI)
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
   dbname = "facs_analysis",
-  host = "192.168.49.15",
-  user = "shiny_reader",
+  host = "",
+  user = "",
   port = 5432,
-  password = "readonly"
+  password = ""
 )
 
 
