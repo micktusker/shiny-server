@@ -2,16 +2,17 @@ library(pool)
 library(DBI)
 
 
-# http://cran.fhcrc.org/web/packages/RSQLite/vignettes/RSQLite.html
-# psql -U micktusker -h 127.0.0.1 postgres
+#http://cran.fhcrc.org/web/packages/RSQLite/vignettes/RSQLite.html
+#psql -U micktusker -h 127.0.0.1 postgres
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
   dbname = "facs_analysis",
-  host = "",
-  user = "",
+  host = "192.168.49.15",
+  user = "shiny_reader",
   port = 5432,
-  password = ""
+  password = "readonly"
 )
+
 
 pg.conn <- poolCheckout(pool)
 
@@ -24,6 +25,14 @@ get.experiments <- function(){
 get.datatype.column.names <- function() {
   sql <- "SELECT datatype_column_name FROM shiny_stored_procs.get_datatype_column_names()"
   experiment.assay.datatype.dataframe <- dbGetQuery(pg.conn, sql)
+}
+
+
+# Return all column names for a given experiment
+get.datatype.column.names.for.experiment <- function(experiment.name) {
+  tmpl <- "SELECT datatype_column_name FROM shiny_stored_procs.get_datatype_column_names_for_experiment('%s')"
+  sql <- sprintf(tmpl, experiment.name)
+  column.names.for.experiment <- as.vector(dbGetQuery(pg.conn, sql))
 }
 
 get.experiment.assay.datatype.dataframe <- function() {
