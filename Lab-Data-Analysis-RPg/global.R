@@ -1,8 +1,9 @@
 library(pool)
 library(DBI)
 
+
 ## enable bookmarking ##
-enableBookmarking(store = "url")
+# enableBookmarking(store = "url")
 
 #http://cran.fhcrc.org/web/packages/RSQLite/vignettes/RSQLite.html
 #psql -U micktusker -h 127.0.0.1 postgres
