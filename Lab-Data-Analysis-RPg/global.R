@@ -8,11 +8,11 @@ enableBookmarking(store = "url")
 #psql -U micktusker -h 127.0.0.1 postgres
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
-  dbname = "jyttqlxu",
-  host = "horton.elephantsql.com",
-  user = "jyttqlxu",
+  dbname = "",
+  host = "",
+  user = "",
   port = 5432,
-  password = "1EtmCW9oR3Jvo9aYiNu3sXESGXN4NB3L"
+  password = ""
 )
 
 
