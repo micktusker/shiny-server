@@ -1,4 +1,4 @@
-## Load packages
+### Load packages
 library(ggplot2)
 library(dplyr)
 library(plotly)

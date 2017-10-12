@@ -14,6 +14,7 @@
 #' @param legendSize adjustable font size for legend text
 #' @param dataType input to be used in title
 #'
+#'
 #' @return ggplot object
 #' @export
 #' @description Produces the main FACs analysis graphic. 
