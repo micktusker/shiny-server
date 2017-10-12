@@ -1,17 +1,20 @@
 library(pool)
 library(DBI)
 
+## enable bookmarking ##
+enableBookmarking(store = "url")
 
 #http://cran.fhcrc.org/web/packages/RSQLite/vignettes/RSQLite.html
 #psql -U micktusker -h 127.0.0.1 postgres
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
-  dbname = "facs_analysis",
-  host = "",
-  user = "",
+  dbname = "jyttqlxu",
+  host = "horton.elephantsql.com",
+  user = "jyttqlxu",
   port = 5432,
-  password = ""
+  password = "1EtmCW9oR3Jvo9aYiNu3sXESGXN4NB3L"
 )
+
 
 
 pg.conn <- poolCheckout(pool)
@@ -39,12 +42,23 @@ get.experiment.assay.datatype.dataframe <- function() {
   sql <- "SELECT experiment_name, assay_type, datatype_name FROM shiny_stored_procs.get_experiment_assay_datatype_dataframe()"
   experiment.assay.datatype.dataframe <- dbGetQuery(pg.conn, sql)
 }
-experiment.assay.datatype.dataframe <- get.experiment.assay.datatype.dataframe()
+#experiment.assay.datatype.dataframe <- get.experiment.assay.datatype.dataframe()
+
 # Call a stored procedure to get a Pan T Cell Data for a specified datatype.name.
 get.pan.tcell.data <- function(experiment.name, datatype.name) {
+
   tmpl <-  "SELECT * FROM shiny_stored_procs.get_data_for_experiment_datatype('%s', '%s')"
-  sql <- sprintf(tmpl, experiment.name, datatype.name)
-  df <- dbGetQuery(pg.conn, sql)
-  df$antibody_id <- trimws(df$antibody_id)
-  return(df)
+  
+  experimentList <- data.frame()
+  
+  for(i in seq_along(experiment.name)){
+      sql <- sprintf(tmpl, experiment.name[i], datatype.name)
+      df <- dbGetQuery(pg.conn, sql) %>% 
+        mutate(experiment = experiment.name[i])
+      experimentList <-  rbind(experimentList, df)
+     
+  }
+  experimentList$antibody_id <- trimws(experimentList$antibody_id)
+
+  return(experimentList)
 }
