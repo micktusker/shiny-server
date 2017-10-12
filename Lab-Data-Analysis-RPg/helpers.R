@@ -12,6 +12,7 @@
 #' @param xAxisAngle Angle of x-axis label
 #' @param xAxisFont Font size of x-axis label
 #' @param legendSize adjustable font size for legend text
+#' @param dataType input to be used in title
 #'
 #' @return ggplot object
 #' @export
@@ -19,7 +20,7 @@
 
 mainPlot <- function(data, errorBars = FALSE, xVar, responseVar, plotTitle, subTitle, 
                      greyScale = FALSE, withPoint = FALSE, facetBy = NULL, 
-                     xAxisAngle = 75, xAxisFont = 5, legendSize = 8){
+                     xAxisAngle = 75, xAxisFont = 5, legendSize = 8, dataType){
   
 
   # Create the reactive plot object. This can then be called in the dashboard and downloaded
@@ -27,15 +28,16 @@ mainPlot <- function(data, errorBars = FALSE, xVar, responseVar, plotTitle, subT
 
     title <- if(subTitle == ""){
       ifelse(errorBars,
-                    "Replicates average +/- SD by Antibody ID for each donor day",
-                    "Replicates average by Antibody ID for each donor day")
+             paste(dataType, "+/- SD by Antibody ID for each donor day"),
+             paste(dataType, "Replicates average by Antibody ID for each donor day"))
     } else{ subTitle }
 
-   
     facetPlot <- ggplot(data = data, 
                         aes_string(x = xVar, y = responseVar, fill = "donor_day")) +
       geom_bar(stat="summary", fun.y = "mean", position = position_dodge(0.9)) +
-      theme(axis.text.x = element_text(angle = xAxisAngle, hjust= 1, size = xAxisFont)) +
+      theme(axis.text.x = element_text(angle = xAxisAngle, hjust= 1, size = xAxisFont),
+            plot.subtitle= element_text(size = 13),
+            plot.title =  element_text(size = 18)) +
       guides(fill = guide_legend(label.theme = element_text(size = legendSize, angle = 0))) +
       labs(subtitle = title) +
       labs(title = plotTitle)
@@ -143,7 +145,7 @@ interactionPlotFun <- function(data, responseVar, plotTitle, greyScale = FALSE,
 
 experimentToAntibody_split <- function(data, experiment_name, byExperiment = TRUE, ...){
   
-  plot.listR <- list(experiment = NULL, antibody = NULL)
+  plot.listR <- list(experiment = NULL, antibody = NULL, donorDay = NULL)
   
   # Split data by experiment (for 1st tab)
   plot.listR$experiment <- data %>% 
@@ -151,20 +153,36 @@ experimentToAntibody_split <- function(data, experiment_name, byExperiment = TRU
     map( ~ mainPlot(data = ., plotTitle = paste("Experiment:", .$experiment), ...))%>% 
     keep(~ nrow(.$data) > 0 ) 
   
-  # If antibodies split by experiment or not
+
+  
+  #  Split graphics by experiment
   if(byExperiment){
     
+    # Split data by antibody & experiment
     plot.listR$antibody <- data %>% 
       split(list(.$experiment, .$antibody_id)) %>% 
       map( ~ mainPlot(data = ., plotTitle = paste("Experiment:", .$experiment), ...)) %>% 
       keep(~ nrow(.$data) > 0 )
     
+    # Split data by donorDay & experiment
+    plot.listR$donorDay <- data %>% 
+      split(list(.$experiment, .$donor_day)) %>% 
+      map( ~ mainPlot(data = ., plotTitle = paste("Experiment:", .$experiment), ...))%>% 
+      keep(~ nrow(.$data) > 0 ) 
+    
   } else {
     
+    # Split data by antibody 
     plot.listR$antibody <- data %>% 
       split(.$antibody_id) %>% 
-      map( ~ mainPlot(data = ., plotTitle = paste("Experiment:", .$experiment), ...)) %>% 
+      map( ~ mainPlot(data = ., plotTitle = "All Experiments", ...)) %>% 
       keep(~ nrow(.$data) > 0 )  # Remove plots that contain no data
+    
+    # Split data by donorDay 
+    plot.listR$donorDay <- data %>% 
+      split( .$donor_day) %>% 
+      map( ~ mainPlot(data = ., plotTitle ="All Experiments", ...))%>% 
+      keep(~ nrow(.$data) > 0 ) 
 
   }
   

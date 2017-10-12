@@ -24,7 +24,7 @@ dashboardPage(
                       selectInput("assay_type", "Select an assay type", choices = c("Pan T Cell")),
                       selectInput("experiment_name", "Select an experiment name", choices = get.experiments(), multiple = TRUE),
                       uiOutput("datatype_column_name"),
-                      actionButton("submit", "Submit", class = "btn-primary")
+                      actionButton("submit", "Pull Data", class = "btn-primary")
              ),
              tabPanel("Subset Data",
                
@@ -75,25 +75,34 @@ dashboardPage(
                             
                       ),
                       br(),
-                      fluidRow(
+                      fluidRow( 
                         column(width = 6, 
-                               downloadButton("plotDownloadAntiB", "Download Antibodies"))
-                        )
+                               downloadButton("plotDownload_AntiB", "Download Antibodies"))
+                        ),
+                      br(),
+                      fluidRow( 
+                        column(width = 6, 
+                               downloadButton("plotDownload_DonorDay", "Download Donor Day"))
+                      )
                       )
                       )
              ) 
            ),
     # Graphics and table output
     column(9,
-           bookmarkButton(align = "right"),
+           #bookmarkButton(align = "right"),
            img(src='tusk.png', align = "right", width = "110px"),   # Adds logo to dashboard
-           tabsetPanel(
+           tabsetPanel(id = "tabs",
              tabPanel("By Experiment",
                       fluidRow(uiOutput("ggbarplotFacet", width = "100%", height = "600px"))
                       ),
              tabPanel("By Antibody",
-                      checkboxInput("intraExperiment", label = h4("Split antibodies by experiment?", value = TRUE)),
+                      checkboxInput("antiB_ExperimentSplit", label = h4("Split by experiment?")),
                       fluidRow(uiOutput("antibodyFacet", width = "100%", height = "600px"))
+                      ),
+             tabPanel("By Donor_Day",
+                      checkboxInput("donor_ExperimentSplit", label = h4("Split by experiment?")),
+                      fluidRow(uiOutput("donor_day", width = "100%", height = "600px"))
                       ),
              tabPanel("Interaction Plot",
                       plotly::plotlyOutput('interactionPlot')
