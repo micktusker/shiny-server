@@ -120,7 +120,7 @@ interactionPlotFun <- function(data, responseVar, plotTitle, greyScale = FALSE,
   
   # build graph with ggplot syntax
   interaction <- ggplot(data = data, 
-                        aes(x = interaction(antibody_id, cd3_concentration, antibody_concentration), fill = donor_day)) +
+                        aes(x = interaction(antibody_id, cd3_concentration, antibody_concentration, sep = "_"), fill = donor_day)) +
     geom_bar(aes_string(y = yVar), stat="summary", fun.y = "mean", position = position_dodge(0.9)) +
     theme(axis.text.x = element_text(angle = xAxisAngle, hjust = 1, size = xAxisFont)) +
     stat_summary(  aes_string(y = yVar),
@@ -128,7 +128,7 @@ interactionPlotFun <- function(data, responseVar, plotTitle, greyScale = FALSE,
                    fun.ymax = function(x)(mean(x,  na.rm=TRUE) + sd(x,  na.rm=TRUE)),
                    fun.y = mean, geom = "errorbar", position = position_dodge(0.9)) +
     ggtitle(plotTitle) +  
-    geom_point(aes_string(y = yVar),alpha = 1/5) #geom_point(alpha = 1/5, position = position_dodge(0.9))
+   geom_point(aes_string(y = yVar),alpha = 1/5) 
   
   #Make graphic grey
   if(greyScale){
