@@ -12,9 +12,10 @@ pool <- dbPool(
   dbname = "",
   host = "",
   user = "",
-  port = 5432,
+  port = ,
   password = ""
 )
+
 
 
 
