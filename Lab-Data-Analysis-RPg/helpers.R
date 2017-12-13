@@ -13,6 +13,7 @@
 #' @param xAxisFont Font size of x-axis label
 #' @param legendSize adjustable font size for legend text
 #' @param dataType input to be used in title
+#' @param controls vector of control columns. Used to reorder bars
 #'
 #'
 #' @return ggplot object
@@ -21,7 +22,20 @@
 
 mainPlot <- function(data, errorBars = FALSE, xVar, responseVar, plotTitle, subTitle, 
                      greyScale = FALSE, withPoint = FALSE, facetBy = NULL, 
-                     xAxisAngle = 75, xAxisFont = 5, legendSize = 8, dataType){
+                     xAxisAngle = 75, xAxisFont = 5, legendSize = 8, dataType, controls){
+  
+
+  # Reorder varibales on the xAxis to display select controls on the LHS of the graph
+  if(!is.null(controls)){
+   
+    controlCols <- grep(paste(controls,collapse="|"), 
+                     unique(data$antibody_id), value=TRUE)
+     non_controls <- grep(paste(controls,collapse="|"), 
+                          unique(data$antibody_id), value=TRUE, invert = TRUE)
+     data$antibody_id <- factor(data$antibody_id, levels = c(controlCols, non_controls))
+  }
+
+
   
 
   # Create the reactive plot object. This can then be called in the dashboard and downloaded

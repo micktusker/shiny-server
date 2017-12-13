@@ -41,13 +41,16 @@ shinyServer(function(input, output, session) {
     
     # Call the reactive data
     panSub <- pan.tcell.data() 
-    
-    # Filter the data dependant on the values selected in the subset inputs
+
     panSub <- panSub %>% 
+      dplyr::mutate(antibody_concentration = ifelse(is.na(antibody_concentration), "NA", antibody_concentration),
+                    cd3_concentration =  ifelse(is.na(cd3_concentration), "NA", cd3_concentration)) %>% 
       dplyr::filter(donor_day %in% input$donor_day_list, 
                     antibody_id %in% input$antibody_id_list,
                     cd3_concentration %in% input$cd3_concs_list,
-                    antibody_concentration %in% input$antibody_concs_list)
+                    antibody_concentration %in% input$antibody_concs_list) %>% 
+      dplyr::mutate(antibody_concentration = as.numeric(antibody_concentration),
+                    cd3_concentration =  as.numeric(cd3_concentration))
     
      return(panSub)
   })
@@ -75,6 +78,10 @@ shinyServer(function(input, output, session) {
     box(title = "Variable Control", solidHeader = TRUE, collapsible = TRUE, 
         collapsed = TRUE, width = 10, status = "primary",
         
+        selectInput("ctrlVar", "Control Variables",
+                    choices = unique(pan.tcell.data()$antibody_id), 
+                    selected = grep("ctrl", unique(pan.tcell.data()$antibody_id), value = TRUE, ignore.case = TRUE),
+                    multiple = TRUE),
         selectInput("responseVar", "Select Response variable", 
                     choices = colnames(pan.tcell.data()), selected = "replicates_avg"),
         selectInput("xVar", "X Axis", 
@@ -96,13 +103,14 @@ shinyServer(function(input, output, session) {
       input$donor_ExperimentSplit
     } else{input$antiB_ExperimentSplit}
     
+
     #Outputs a list of ggplot objects, graphics split by experiment and/or antibody
     experimentToAntibody_split(data = panCell.Subset(), experiment_name = input$experiment_name,
               byExperiment = experimentSplit, errorBars = input$errorBars, xVar = input$xVar,
               responseVar = input$responseVar, subTitle = input$plot_title,
               greyScale = input$greyScale, withPoint = input$withPoint,
               facetBy = input$facetBy, xAxisAngle = input$xTextAdj, xAxisFont = input$xAxisFont,
-              legendSize = input$legendSize, dataType = current_selection$dataType)
+              legendSize = input$legendSize, dataType = current_selection$dataType, controls = input$ctrlVar)
   
   })
 
