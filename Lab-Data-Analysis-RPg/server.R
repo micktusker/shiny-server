@@ -41,7 +41,9 @@ shinyServer(function(input, output, session) {
     
     # Call the reactive data
     panSub <- pan.tcell.data() 
-
+    
+    # Convert numeric columns to characer so NA values are not lost in the filter
+    # Convert columns back to numeric ready for plotting.
     panSub <- panSub %>% 
       dplyr::mutate(antibody_concentration = ifelse(is.na(antibody_concentration), "NA", antibody_concentration),
                     cd3_concentration =  ifelse(is.na(cd3_concentration), "NA", cd3_concentration)) %>% 

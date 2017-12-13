@@ -49,7 +49,7 @@ mainPlot <- function(data, errorBars = FALSE, xVar, responseVar, plotTitle, subT
 
     facetPlot <- ggplot(data = data, 
                         aes_string(x = xVar, y = responseVar, fill = "donor_day")) +
-      geom_bar(stat="summary", fun.y = "mean", position = position_dodge(0.9)) +
+      geom_bar(stat="summary", fun.y = "mean", position = position_dodge(0.9), width = 0.3) +
       theme(axis.text.x = element_text(angle = xAxisAngle, hjust= 1, size = xAxisFont),
             plot.subtitle= element_text(size = 13),
             plot.title =  element_text(size = 18)) +
@@ -69,7 +69,7 @@ mainPlot <- function(data, errorBars = FALSE, xVar, responseVar, plotTitle, subT
         stat_summary(  
           fun.ymin = function(x)(mean(x,  na.rm=TRUE) - sd(x,  na.rm=TRUE)), 
           fun.ymax = function(x)(mean(x,  na.rm=TRUE) + sd(x,  na.rm=TRUE)),
-          fun.y = mean, geom = "errorbar", position = position_dodge(0.9))
+          fun.y = mean, geom = "errorbar", position = position_dodge(0.9), width = 0.3)
     }
     
     
@@ -86,10 +86,11 @@ mainPlot <- function(data, errorBars = FALSE, xVar, responseVar, plotTitle, subT
       } else{
         formulaPlot <- paste(facetBy[1], "~", facetBy[2])
       }
-      
       #Add formula to facet
       facetPlot <- facetPlot + 
-        facet_wrap(as.formula(formulaPlot), strip.position = "bottom", scales = "free_x") 
+        facet_wrap(as.formula(formulaPlot), 
+                   strip.position = "bottom", 
+                   scales = "free_x", labeller = label_both) # Labels facets with column names
     }
   
   facetPlot
