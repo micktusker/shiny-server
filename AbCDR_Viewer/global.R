@@ -23,7 +23,8 @@ get_last_cys_position <- function(aa_seq) {
 
 get_cdr_l1_sequence <- function(aa_seq) {
   pattern <- 'C(.{10,})?W.[QL]'
-  return(stringr::str_extract(aa_seq, pattern))
+  match <- stringr::str_match(aa_seq, pattern)
+  return(match[[2]])
 }
 
 # https://stackoverflow.com/questions/34807871/r-regmatches-and-stringr-str-extract-dragging-whitespaces-along
