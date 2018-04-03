@@ -1,49 +1,20 @@
-CREATE TABLE loaded_excel_files.cord_experiments(
-  cord_experiment_id SERIAL PRIMARY KEY,
-  cord_id TEXT, 
-  Database_name TEXT, 
-  database_id TEXT, 
-  fold_change REAL, 
-  species TEXT, 
-  title TEXT, 
-  factor TEXT, 
-  group_1 TEXT, 
-  group_2 TEXT, 
-  array_platform TEXT, 
-  of_interest TEXT, 
-  abs_value TEXT, 
-  sign TEXT);
-
-CREATE OR REPLACE FUNCTION transfer_cord_experiments()
-RETURNS TABLE(insert_row_count INTEGER)
+CREATE OR REPLACE FUNCTION convert_excel_date_number_to_date(p_excel_date_number INTEGER)
+RETURNS DATE
 AS
 $$
-DECLARE
-  l_inserted_row_count INTEGER;
 BEGIN
-	INSERT INTO loaded_excel_files.cord_experiments(cord_id, database_name, database_id, fold_change, 
-	                                                species, title, factor, group_1, group_2, array_platform, of_interest, abs_value, sign)
-	SELECT 
-	  "CordID", 
-	  "Database", 
-	  "Datbase ID", 
-	  CAST("Fold Change" AS REAL), 
-	  "Species", 
-	  "Title", 
-	  "Factor", 
-	  "Group 1", 
-	  "Group 2", 
-	  "Array Platform", 
-	  "Of_Interest", 
-	  abs_value, 
-	  sign
-	FROM
-	  public."Experiments";
-	GET DIAGNOSTICS l_inserted_row_count := ROW_COUNT;
-	DROP TABLE public."Experiments";
-	RETURN QUERY 
-	SELECT l_inserted_row_count;
+  RETURN (TO_DATE('1900-01-01', 'YYYY-MM-DD') -2) + p_excel_date_number;
 END;
 $$
-LANGUAGE plpgsql;
-COMMENT ON FUNCTION transfer_cord_experiments() IS $$Calling stored procedures has not yet been implemented in R but it can be faked as shown in this function. Call: 'SELECT insert_row_count FROM transfer_cord_experiments();'$$
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER;
+
+COMMENT ON FUNCTION convert_excel_date_number_to_date(INTEGER) IS
+$qq$
+Purpose:R library function "readxl::read_xlsx" converts Excel dates into the date serial number representation.
+This function converts those numbers into the correct date formats that can be recognised by PostgreSQL.
+Invocation: SELECT convert_excel_date_number_to_date(42815); 
+Note: This Excel function call will return the same date: =TEXT(42815,"dd-mm-yyyy")
+See MS documentation on Excel date formats: https://support.office.com/en-gb/article/Convert-dates-stored-as-text-to-dates-8df7663e-98e6-4295-96e4-32a67ec0a680
+$qq$;
