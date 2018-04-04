@@ -96,3 +96,28 @@ get_cdr_sequence_liabilities <- function(aa_seq) {
   names(liability_counts) <- liabilities
   return(stringr::str_c(stringr::str_c(names(liability_counts), liability_counts, sep = ':'), collapse = ', '))
 }
+
+highlight_liabilities_in_cdr  <- function(cdr_aa_seq) {
+  liabilities <- c('NG', 'NM', 'NS', 'NT', 'DG', 'DS', 'DT', 'DD', 'DM', 'M', 'C')
+  cdr_highlighted_liabilities <- cdr_aa_seq
+  for (liability in liabilities) {
+    cdr_highlighted_liabilities <- stringr::str_replace_all(cdr_highlighted_liabilities, liability, stringr::str_c('<span style="color:red">', liability, '</span>'))
+  }
+  return(cdr_highlighted_liabilities)
+}
+
+get_html_formatted_sequence <- function(cdr_sequence_list, aa_seq) {
+  aa_seq_prepped <- stringr::str_trim(stringr::str_to_upper(aa_seq))
+  CDR1 <- cdr_sequence_list$CDR1
+  CDR2 <- cdr_sequence_list$CDR2
+  CDR3 <- cdr_sequence_list$CDR3
+  CDR1_liabilities_html <- highlight_liabilities_in_cdr(CDR1)
+  CDR2_liabilities_html <- highlight_liabilities_in_cdr(CDR2)
+  CDR3_liabilities_html <- highlight_liabilities_in_cdr(CDR3)
+  html_formatted_sequence <- stringr::str_replace(aa_seq_prepped, CDR1, stringr::str_c('<u><b>', CDR1_liabilities_html, '</b></u>'))
+  html_formatted_sequence <- stringr::str_replace(html_formatted_sequence, CDR2, stringr::str_c('<u><b>', CDR2_liabilities_html, '</b></u>'))
+  html_formatted_sequence <- stringr::str_replace(html_formatted_sequence, CDR3, stringr::str_c('<u><b>', CDR3_liabilities_html, '</b></u>'))
+  return(html_formatted_sequence)
+}
+
+

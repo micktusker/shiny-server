@@ -3,7 +3,7 @@ library(shiny)
 
 # Define server logic required to generate and plot a random distribution
 shinyServer(function(input, output) {
-  result <- reactive({
+  cdr_result <- reactive({
     if(nchar(input$aa_seq) < 1) {
       return(NULL)
     }
@@ -25,5 +25,21 @@ shinyServer(function(input, output) {
       return(ab_analysis)
     })
   })
-  output$result <- renderTable({result()})
+  output$result <- renderTable({cdr_result()})
+  seq_result <- reactive({
+    if(nchar(input$aa_seq) < 1) {
+      return(NULL)
+    }
+    isolate({
+      chain_type <- get_chain_type(input$aa_seq)
+      if(chain_type == 'H') {
+        cdr_sequence_list <- get_cdr_h_chain_sequence_list(input$aa_seq)
+      } else if(chain_type == 'L') {
+        cdr_sequence_list <- get_cdr_l_chain_sequence_list(input$aa_seq)
+      }
+      html_formatted_sequence <- get_html_formatted_sequence(cdr_sequence_list, input$aa_seq)
+      return(stringr::str_c('<h4>Sequence with CDRs and liabilities highlighted</h4><br>', html_formatted_sequence))
+    })
+  })
+  output$aa_seq_formatted <- renderText(seq_result())
 })
