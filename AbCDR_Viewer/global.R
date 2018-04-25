@@ -1,6 +1,12 @@
+library(stringi)
+library(stringr)
+
+cleanup_sequence <- function(aa_sequence) {
+  cleaned_sequence <- stringi::stri_trans_toupper(stringi::stri_replace_all_charclass(aa_sequence, "\\p{WHITE_SPACE}", ""))
+  return(cleaned_sequence)
+}
 get_chain_type <- function(aa_seq) {
-  aa_seq_prepped <- stringr::str_trim(stringr::str_to_upper(aa_seq))
-  if(stringr::str_detect(aa_seq_prepped, 'EIK$')) {
+  if(stringr::str_detect(aa_seq, 'EIK$')) {
     return('L')
   } else if(stringr::str_detect(aa_seq, 'TVSS$')) {
     return('H')
@@ -46,7 +52,7 @@ get_cdr_l3_sequence <- function(aa_seq) {
 }
 
 get_cdr_l_chain_sequence_list <- function(aa_seq) {
-  aa_seq_prepped <- stringr::str_trim(stringr::str_to_upper(aa_seq))
+  aa_seq_prepped <- cleanup_sequence(aa_seq)
   chain_type <- get_chain_type(aa_seq_prepped)
   if(chain_type != 'L') return(NULL)
   cdr1_l <- get_cdr_l1_sequence(aa_seq_prepped)
@@ -74,7 +80,7 @@ get_cdr_h3_sequence <- function(aa_seq) {
 }
 
 get_cdr_h_chain_sequence_list <- function(aa_seq) {
-  aa_seq_prepped <- stringr::str_trim(stringr::str_to_upper(aa_seq))
+  aa_seq_prepped <- cleanup_sequence(aa_seq)
   chain_type <- get_chain_type(aa_seq_prepped)
   if(chain_type != 'H') return(NULL)
   cdr1_h <- get_cdr_h1_sequence(aa_seq_prepped)
@@ -84,13 +90,13 @@ get_cdr_h_chain_sequence_list <- function(aa_seq) {
 }
 
 get_total_cysteine_count <- function(aa_seq) {
-  aa_seq_prepped <- stringr::str_trim(stringr::str_to_upper(aa_seq))
+  aa_seq_prepped <- cleanup_sequence(aa_seq)
   total_cysteine_count <- stringr::str_count(aa_seq_prepped, 'C')
   return(total_cysteine_count)
 }
 
 get_cdr_sequence_liabilities <- function(aa_seq) {
-  aa_seq_prepped <- stringr::str_trim(stringr::str_to_upper(aa_seq))  
+  aa_seq_prepped <- cleanup_sequence(aa_seq)  
   liabilities <- c('NG', 'NM', 'NS', 'NT', 'DG', 'DS', 'DT', 'DD', 'DM', 'M', 'C')
   liability_counts <- stringr::str_count(aa_seq_prepped, liabilities)
   names(liability_counts) <- liabilities
@@ -107,7 +113,7 @@ highlight_liabilities_in_cdr  <- function(cdr_aa_seq) {
 }
 
 get_html_formatted_sequence <- function(cdr_sequence_list, aa_seq) {
-  aa_seq_prepped <- stringr::str_trim(stringr::str_to_upper(aa_seq))
+  aa_seq_prepped <- cleanup_sequence(aa_seq)
   CDR1 <- cdr_sequence_list$CDR1
   CDR2 <- cdr_sequence_list$CDR2
   CDR3 <- cdr_sequence_list$CDR3
@@ -120,4 +126,19 @@ get_html_formatted_sequence <- function(cdr_sequence_list, aa_seq) {
   return(html_formatted_sequence)
 }
 
+
+get_cysteine_count <- function(aa_seq) {
+  return(stringr::str_count(aa_seq, 'C'))
+}
+
+check_given_sequence <- function(aa_seq) {
+  aa_seq_prepped <- cleanup_sequence(aa_seq)
+  if(get_cysteine_count(aa_seq_prepped) != 2) {
+    return(sprintf("Expected only two Cys residues. Detected %d!", get_cysteine_count(aa_seq_prepped)))
+  }
+  if(!get_chain_type(aa_seq_prepped) %in% c('H', 'L')) {
+    return('Cannot determine the chain type!')
+  }
+  return(NULL)
+}
 
