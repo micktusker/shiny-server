@@ -13,7 +13,7 @@ getRdsFiles <- function() {
   return(rdsFileNames)
 }
 
-processRdsFiles <- function(rdsFiles) {
+getFullTable <- function(rdsFiles) {
   donorsList <- file.path(RDS_FILE_SUBDIR, rdsFiles)
   donors.data <- list()
   for (i in 1:length(donorsList)){
@@ -44,11 +44,22 @@ processRdsFiles <- function(rdsFiles) {
   return(fullTable)
 }
 
-getSimplePlot <- function(fullTable) {
+getPopulationNames <- function(fullTable) {
+  populationNames <- unique(fullTable$Population)
+  return(as.vector(populationNames))
+}
+
+getSampleNames <- function(fullTable) {
+  sampleNames <- unique(fullTable$sample)
+  return(as.vector(sampleNames))
+}
+
+getPlotAndSummaryList <- function(fullTable, populationNames, sampleNames) {
+  plotAndSummaryList <- list()
   #Making a simple Bar graph-----------------------------------------------------------------
   ##Get subset of data
-  plotSet <- subset(fullTable, Population == "aTreg cells (Fr. II)/CD25+") ##ASSIGN INPUT FROM GUI
-  plotSet <- subset(plotSet, sample == "full_stain" | sample =="CD25_FMO") ##ASSIGN INPUT FROM GUI
+  plotSet <- subset(fullTable, Population %in% populationNames) ##ASSIGN INPUT FROM GUI
+  plotSet <- subset(plotSet, sample %in% sampleNames) ##ASSIGN INPUT FROM GUI
   
   ##Need a section here that lets you say percentage of which population - help!
   
@@ -63,5 +74,7 @@ getSimplePlot <- function(fullTable) {
   
   ##plot the bar graph
   plot1 <- ggplot(plotSet, aes(x=sample, y=frequency_of_Parent)) + geom_dotplot(binaxis='y', binwidth = 1, stackdir='center') + stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), geom="errorbar", color="black", width=0.2) + stat_summary(fun.y=mean, geom="point", color="red") + geom_bar(data=statSet,stat="identity", color="black", alpha=0.2) + theme_classic()+labs(title="Proportion of aTreg that are CD25+")
-  return(plot1)
+  plotAndSummaryList[['plot']] <- plot1
+  plotAndSummaryList[['summary_table']] <- statSet
+  return(plotAndSummaryList)
 }
