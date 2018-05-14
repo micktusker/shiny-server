@@ -10,9 +10,10 @@ fluidPage(
     </ul>")
   ),
   textAreaInput("aa_seq", "Paste Sequence", width = "1000px", height = "100px"),
+  br(),
   actionButton('btn_run', "Submit"),
-  mainPanel(
-    tableOutput("param_values"),
-    tableOutput("aa_counts")
-  )
+  uiOutput("param_values_heading"),
+  tableOutput("param_values"),
+  uiOutput("aa_counts_heading"),
+  DT::dataTableOutput("aa_counts")
 )

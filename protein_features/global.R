@@ -23,6 +23,7 @@ getProteinResultsTables <- function(aa_seq) {
     aminoAcidCounts <- proteinResultsList$amino_acid_count
     df <- data.frame(t(data.frame(aminoAcidCounts)))
     df['Amino Acid'] <- rownames(df)
+    row.names(df) <- NULL
     names(df) <- c('Count', 'Amino Acid')
     df <- df[c(2, 1)]
     return(df)
