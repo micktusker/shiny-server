@@ -6,15 +6,23 @@ getProteinResultsJson <- function(aa_seq) {
 }
 
 
+# simply dividing the Molar Extinction Coefficient by the molecular weight
+
 getProteinResultsTables <- function(aa_seq) {
   proteinResultsList <- getProteinResultsJson(aa_seq)
   getParamsDF <- function() {
-    paramCalculations <- c(proteinResultsList$molecular_weight, 
-                           proteinResultsList$extinction_coefficient_reduced_cysteines, 
-                           proteinResultsList$extinction_coefficient_disulphide_bridges)
-    paramNames <- c('Molecular Weight', 
+    paramCalculations <- c(proteinResultsList$molecular_weight,
+                           proteinResultsList$isoelectric_point,
+                           proteinResultsList$extinction_coefficient_reduced_cysteines,
+                           proteinResultsList$extinction_coefficient_disulphide_bridges,
+                           absorbance_reduced_cysteine <- proteinResultsList$extinction_coefficient_reduced_cysteines/proteinResultsList$molecular_weight,
+                           absorbance_disulphide_bridges <- proteinResultsList$extinction_coefficient_disulphide_bridges/proteinResultsList$molecular_weight)
+    paramNames <- c('Molecular Weight',
+                    'Isoelectric Point',
                     'Extinction Coefficient Reduced Cysteine', 
-                    'Extinction Coefficient Disulphide Bridges')
+                    'Extinction Coefficient Disulphide Bridges',
+                    'Absorbance 0.1% Reduced Cysteine',
+                    'Absorbance 0.1% Disulphide Bridges')
     df <- data.frame(paramNames, paramCalculations)
     names(df) <- c('Parameter', 'Value')
     return(df)
