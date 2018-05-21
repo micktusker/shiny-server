@@ -103,9 +103,8 @@ print(plot1)
 #Making a stacked columns graph---------------------------------------------------------------
 ##Get subset of data
 #plotSet <- subset(fullTable, Population == "CD4+" | Population == "aTreg cells (Fr. II)" | Population == "CD45RA_FoxP3lo non-Treg cell fraction (Fr. III)" | Population == "rTreg" | Population == "CD8+" |  Population == "CD8+/CD25+") ##ASSIGN INPUT FROM GUI
-plotSet <- subset(fullTable, Population == "B cells" | Population == "Myeloid DC" | Population == "Plasmacytoid DC" | Population == "Lin-" | Population == "CD56 high" | Population == "CD56 low" | Population == "Classical Monocytes" | Population == "Intermediate Monocytes" | Population == "Non-classical monocytes" | Population == "T cells") ##ASSIGN INPUT FROM GUI
 plotSet <- subset(plotSet, sample == "full_stain") ##ASSIGN INPUT FROM GUI
-plotSet <- subset(plotSet, Donor == "3") ##ASSIGN INPUT FROM GUI
+plotSet <- subset(plotSet, Donor == "5") ##ASSIGN INPUT FROM GUI
 
 ##summary table
 statSet <- ddply(plotSet, c("Population"), summarise,

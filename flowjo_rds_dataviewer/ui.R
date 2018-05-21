@@ -6,16 +6,19 @@ fluidPage(
     actionButton("btn_table", "Generate Table"),
     uiOutput("population_names"),
     uiOutput("sample_names"),
-    actionButton("btn_plot", "Generate Plot")
+    uiOutput("donor_id"),
+    actionButton("btn_plot", "Generate Plots")
   ),
   mainPanel(
     tabsetPanel(type = "tabs",
+                tabPanel("Simple Plot",
+                         plotOutput("simple_plot"),
+                         DT::dataTableOutput("summary_table1")),
+                tabPanel("Stacked Plot",
+                         plotOutput("stacked_plot"),
+                         DT::dataTableOutput("summary_table2")),
                 tabPanel("Full Data Table",
-                         DT::dataTableOutput("full_table")),
-                tabPanel("Plot",
-                         plotOutput("simple_plot")),
-                tabPanel("Summary",
-                         DT::dataTableOutput("summary_table"))
+                         DT::dataTableOutput("full_table"))
     )
   )
 )
