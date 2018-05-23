@@ -68,6 +68,39 @@ SECURITY DEFINER;
 
 SELECT * FROM antibodies.add_new_antibody_sequence('test ab 1', 'EVQLLESGGGLVQPGGSLRLSCAASGFTFSSYGMSWVRQAPGKGLELVSTINGYGDTTYYPDSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARDRDYGNSYYYALDYWGQGTLVTVSS');
 
+CREATE OR REPLACE FUNCTION antibodies.get_fasta_sequences_for_imgt_ids(p_imgt_ids TEXT[])
+RETURNS TEXT[]
+AS
+$$
+DECLARE
+  l_fasta_seqs TEXT[];
+  l_counter INTEGER := 1;
+  l_response TEXT;
+  imgt_id TEXT;
+BEGIN
+  FOREACH imgt_id IN ARRAY p_imgt_ids
+  LOOP
+    BEGIN
+	  l_response := bix_udfs.get_fasta_seq_as_aa_for_gene_synonym(imgt_id);
+	  l_response := CONCAT(imgt_id, E'\t', l_response);
+	  l_fasta_seqs[l_counter] := l_response;
+	  l_counter := l_counter + 1;
+	EXCEPTION
+	  WHEN OTHERS THEN
+	    l_response := CONCAT(imgt_id, E'\t', 'ERROR');
+	    l_fasta_seqs[l_counter] := l_response;
+	    l_counter := l_counter + 1;
+	END;
+  END LOOP;
+  
+  RETURN l_fasta_seqs;
+  
+END;
+$$
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER;
+SELECT antibodies.get_fasta_sequences_for_imgt_ids(ARRAY['IGHV4-34', 'IGHV3-21', 'IGHV1-2']);
 
 
 
