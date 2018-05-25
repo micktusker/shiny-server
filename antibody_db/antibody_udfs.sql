@@ -81,16 +81,16 @@ BEGIN
   FOREACH imgt_id IN ARRAY p_imgt_ids
   LOOP
     BEGIN
-	  l_response := bix_udfs.get_fasta_seq_as_aa_for_gene_synonym(imgt_id);
-	  l_response := CONCAT(imgt_id, E'\t', l_response);
-	  l_fasta_seqs[l_counter] := l_response;
-	  l_counter := l_counter + 1;
-	EXCEPTION
-	  WHEN OTHERS THEN
-	    l_response := CONCAT(imgt_id, E'\t', 'ERROR');
+	    l_response := bix_udfs.get_fasta_seq_as_aa_for_gene_synonym(imgt_id);
+	    l_response := CONCAT(imgt_id, E'\t', l_response);
 	    l_fasta_seqs[l_counter] := l_response;
 	    l_counter := l_counter + 1;
-	END;
+	  EXCEPTION
+	    WHEN OTHERS THEN
+	      l_response := CONCAT(imgt_id, E'\t', 'ERROR');
+	      l_fasta_seqs[l_counter] := l_response;
+	      l_counter := l_counter + 1;
+	  END;
   END LOOP;
   
   RETURN l_fasta_seqs;
@@ -102,6 +102,29 @@ STABLE
 SECURITY DEFINER;
 SELECT antibodies.get_fasta_sequences_for_imgt_ids(ARRAY['IGHV4-34', 'IGHV3-21', 'IGHV1-2']);
 
+CREATE OR REPLACE FUNCTION antibodies.get_fasta_sequencesimgt_table()
+RETURNS TABLE(imgt_gene_name TEXT, fasta_sequence TEXT)
+AS
+$$
+DECLARE
+  l_imgt_gene_names TEXT[];
+BEGIN
+  SELECT 
+    ARRAY_AGG(lu.imgt_gene_name) INTO l_imgt_gene_names 
+  FROM
+    antibodies.germline_adimab_imgt_lu lu;
+  RETURN QUERY
+  SELECT 
+    (STRING_TO_ARRAY(UNNEST(get_fasta_sequences_for_imgt_ids), E'\t'))[1] imgt_gene_name,
+	(STRING_TO_ARRAY(UNNEST(get_fasta_sequences_for_imgt_ids), E'\t'))[2] fasta_sequence
+  FROM
+    antibodies.get_fasta_sequences_for_imgt_ids(l_imgt_gene_names);
+END;
+$$
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER;
+CREATE TABLE antibodies.imgt_gene_fasta_sequences AS SELECT * FROM antibodies.get_fasta_sequencesimgt_table();
 
 
 

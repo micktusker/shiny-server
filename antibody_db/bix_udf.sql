@@ -449,4 +449,50 @@ LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION bix_udfs.create_fasta_format(p_description_line_elements TEXT[], 
+														p_sequence TEXT, 
+														p_seq_wrap_length INTEGER DEFAULT 60)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_description_line TEXT;
+  l_regexp TEXT;
+  l_sequence_wrapped TEXT;
+  l_fasta_format TEXT;
+BEGIN
+  l_description_line := CONCAT('>', ARRAY_TO_STRING(p_description_line_elements, '|'), CHR(13));
+  l_regexp := FORMAT('(.{1,%s})', p_seq_wrap_length);
+  l_sequence_wrapped := REGEXP_REPLACE(p_sequence, l_regexp, '\1' || CHR(13), 'g');
+  l_fasta_format := CONCAT(l_description_line, l_sequence_wrapped);
+  
+  RETURN l_fasta_format;
+  
+END;
+$$
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION bix_udfs.extract_sequence_from_fasta(p_fasta_sequence TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_lines TEXT[];
+  l_sequence TEXT;
+BEGIN
+  l_lines := STRING_TO_ARRAY(p_fasta_sequence, E'\n');
+  l_sequence := ARRAY_TO_STRING(l_lines[2:], '');
+  l_sequence := REGEXP_REPLACE(UPPER(l_sequence), '\s', 'g');
+  
+  RETURN l_sequence;
+  
+END;
+$$
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER;
+
+
 

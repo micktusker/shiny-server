@@ -193,3 +193,22 @@ SELECT create_function_comment_statement(
 	'Calling code code whould check for a NULL return value that indicates either that the given gene name synonym is absent from ' ||
 	'Ensembl xrefs or that there is no Uniprot accession matching the pattern used by function |bix_udfs.get_uniprot_accession_for_synonym|.');
 	
+SELECT create_function_comment_statement(
+	'bix_udfs.create_fasta_format',
+	ARRAY['TEXT[]', 'TEXT', 'INTEGER'],
+	'Create and return amino acid or nucleotide sequence in FASTA format.',
+	$$SELECT create_fasta_format FROM bix_udfs.create_fasta_format(ARRAY['tr', 'O90777', 'O90777_9PLVG HIV-1 protease (Fragment) OS=Human immunodeficiency virus OX=12721 GN=HIV-1 protease PE=2 SV=1'], 'PQVTLWQRPIVTIKIGGQLKEALLDTGADDTVLEEMSLPGKWKPKMIGGIGGFIKVRQYDQVSIEICGHKAIGTVLIGPTPVNIIGRNLLTQLGCTLNF');$$,
+	'The description line elements are given as a text array and the sequence wrap length has a default of 60 that can be changed by the calling code. ' ||
+	'The new line character is specified as CHR(13). Note that when creating the regular expression named l_regexp NO space is permitted between the lower and upper ' ||
+	'bounds and if given as {1, 60} an obscure error is generated.');
+
+SELECT create_function_comment_statement(
+	'bix_udfs.extract_sequence_from_fasta',
+	ARRAY['TEXT'],
+	'Extract just the nucleotide or amino acid sequence in upper-case with all white space removed from a standard FASTA record.',
+	$$SELECT bix_udfs.extract_sequence_from_fasta('FASTA_RECORD_DEFINITION_LINE\nFASTA_SEQUENCE');$$,
+	'This is a convenience function to extract just the sequence from a FASTA record. ' ||
+    'The extracted sequence has all white space (leading, trainling or embedded) removed and is converted to upper-case. ' ||
+    'The example call here does not include a real FASTA record because such a record throws JSON conversion errors in the documenter function. ' ||
+    'A real FASTA record can be found here: http://www.uniprot.org/uniprot/O90777.fasta');
+	

@@ -18,6 +18,7 @@ $$
 Load all sequences to check into this table and store metadata as key-value pairs in JSONB.
 $$;
 -- Processing data uploaded using psql command:
+-- log-in
 -- "#  \COPY antibodies.transit_tmp FROM /Users/michaelmaguire/rtusk/mygithub/shiny-server/antibody_db/seqs2check/cd38_04_and_variants_sequences_to_licence_worddoc.txt  DELIMITER E'\b'"
 INSERT INTO antibodies.aa_sequences_check(
 	antibody_hash_id, 
@@ -60,3 +61,28 @@ INSERT INTO antibodies.germline_adimab_imgt_lu(adimab_gene_name, imgt_gene_name)
 ('VK3-20', 'IGKV3-20'),
 ('VK3-11', 'IGKV3-11'),
 ('VK1-05', 'IGKV1-5');
+
+
+-- Loading the adimab cDR sequuences for clones 004 and 010
+-- Source: T:\Bioinformatics\AntibodyDB\BG for Michael\For CD38 new Patents\160926 Adimab DG Re-engineering.xlsx
+-- plsql: # \COPY antibodies.transit_tmp FROM /Users/michaelmaguire/rtusk/mygithub/shiny-server/antibody_db/seqs2check/adimab_mutated_cdr_seqs_cd38_clones_4_and_10.txt  DELIMITER E'\b'
+-- Note that the mutations in the CDR are in lower-case
+CREATE TABLE antibodies.adimab_cdr_changes(
+  adimab_cdr_changes_id SERIAL PRIMARY KEY,
+  adimab_id TEXT,
+  adimab_gl_gene_name TEXT,
+  cdr_sequence TEXT,
+  parent_adimab_id TEXT,
+  region_name TEXT);
+
+INSERT INTO antibodies.adimab_cdr_changes(
+	adimab_id, adimab_gl_gene_name, cdr_sequence, parent_adimab_id, region_name)
+SELECT
+ (STRING_TO_ARRAY(data_row, E'\t'))[1],
+ (STRING_TO_ARRAY(data_row, E'\t'))[2],
+ (STRING_TO_ARRAY(data_row, E'\t'))[3],
+ (STRING_TO_ARRAY(data_row, E'\t'))[4],
+ (STRING_TO_ARRAY(data_row, E'\t'))[5]
+FROM
+  antibodies.transit_tmp;
+  
