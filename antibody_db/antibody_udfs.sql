@@ -126,6 +126,80 @@ STABLE
 SECURITY DEFINER;
 CREATE TABLE antibodies.imgt_gene_fasta_sequences AS SELECT * FROM antibodies.get_fasta_sequencesimgt_table();
 
+CREATE OR REPLACE FUNCTION antibodies.get_sequence_hash_id(p_ab_sequence TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_sequence_hash_id TEXT;
+  l_ab_sequence TEXT;
+BEGIN
+  l_ab_sequence := antibodies.get_cleaned_amino_acid_sequence(p_ab_sequence);
+  
+  RETURN MD5(l_ab_sequence);
+  
+END;
+$$
+LANGUAGE plpgsql
+IMMUTABLE
+SECURITY DEFINER;
+
+
+CREATE OR REPLACE FUNCTION antibodies.add_mab_sequence(p_mab_identifier TEXT,
+											p_source_database_id TEXT,
+											p_source_database_url TEXT,
+											p_antibody_type TEXT,
+											p_heavy_chain_sequence TEXT,
+											p_light_chain_sequence TEXT)
+RETURNS JSONB
+AS
+$$
+DECLARE
+  l_retval TEXT := '{"load_outcome": "%s", "error_message": "%s"}';
+  l_sql_err_msg TEXT := 'NONE';
+  l_mab_full_sequence_has_id TEXT := antibodies.get_sequence_hash_id(CONCAT(p_heavy_chain_sequence, p_light_chain_sequence));
+  l_heavy_chain_sequence TEXT := antibodies.get_cleaned_amino_acid_sequence(p_heavy_chain_sequence);
+  l_light_chain_sequence TEXT := antibodies.get_cleaned_amino_acid_sequence(p_light_chain_sequence);
+BEGIN
+  
+  INSERT INTO antibodies.mab_sequences(mab_full_sequence_hash_id, 
+									   commonly_known_as, 
+									   source_database_id, 
+									   source_database_url, 
+									   antibody_type, 
+									   heavy_chain_sequence, 
+									   light_chain_sequence)
+    VALUES(l_mab_full_sequence_has_id,
+		  p_mab_identifier,
+		  p_source_database_id,
+		  p_source_database_url,
+		  p_antibody_type,
+		  l_heavy_chain_sequence,
+		  l_light_chain_sequence);
+  l_retval := FORMAT(l_retval, 'Loaded', l_sql_err_msg);
+  
+  RETURN l_retval::JSONB;
+  
+EXCEPTION
+   WHEN UNIQUE_VIOLATION THEN
+     l_retval := FORMAT(l_retval, 'Not Loaded', 'Ab sequence already in the database!');
+	 
+	 RETURN l_retval::JSONB;
+	 
+   WHEN OTHERS THEN
+     l_sql_err_msg := SQLERRM;
+	   l_sql_err_msg := REPLACE(l_sql_err_msg, '"', '|');
+	   l_retval := FORMAT(l_retval, 'Not loaded', l_sql_err_msg);
+	 
+	 RETURN l_retval;
+	 
+END;
+$$
+LANGUAGE plpgsql
+SECURITY DEFINER;
+
+
+
 -- CDR determination
 CREATE OR REPLACE FUNCTION antibodies.get_cleaned_amino_acid_sequence(p_amino_acid_sequence TEXT, p_extra_allowable_chars TEXT DEFAULT NULL)
 RETURNS TEXT
