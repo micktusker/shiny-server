@@ -88,7 +88,7 @@ EXECUTE PROCEDURE audit_logs.set_modified_trigger();
 DROP TRIGGER IF EXISTS set_modified_sti_trg ON ab_data.sequences_to_information;
 CREATE TRIGGER set_modified_sti_trg
   BEFORE UPDATE
-  ON ab_data.sequence_to_information 
+  ON ab_data.sequences_to_information 
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.set_modified_trigger();
 
@@ -156,10 +156,10 @@ CREATE TRIGGER update_delete_paas_trg
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.audit_trigger();
 
-DROP TRIGGER IF EXISTS update_delete_sti_trg ON ab_data.sequence_to_information;
+DROP TRIGGER IF EXISTS update_delete_sti_trg ON ab_data.sequences_to_information;
 CREATE TRIGGER update_delete_sti_trg 
   AFTER UPDATE OR DELETE 
-  ON ab_data.sequence_to_information 
+  ON ab_data.sequences_to_information 
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.audit_trigger();
 
