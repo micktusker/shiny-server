@@ -49,4 +49,21 @@ shinyServer(function(input, output, session){
     updateTextInput(session, "lchain_sequence", value = "")
     output$retval <- renderText(stringr::str_c(resultH, resultL, sep = "\n"))
   })
+  storedFilePath <- reactive({
+    uploadFile <- input$file_upload
+    if(is.null(uploadFile)) {
+      return(NULL)      
+    }
+    inputFileName <- input$file_upload$datapath
+    documentDescription <- input$document_description
+    fromBasename <- input$file_upload$name
+    storedFilePath <- storeFile(db$pgConn, inputFileName, fromBasename, documentDescription)
+    
+    return(storedFilePath)
+    
+  })
+  
+  output$file_uploaded <- renderText(storedFilePath())
+  
+  
 })

@@ -74,7 +74,7 @@ CREATE TABLE ab_data.antibody_information(
   modified_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username)	
 );
 
-CREATE TABLE ab_data.sequence_to_information(
+CREATE TABLE ab_data.sequences_to_information(
   common_identifier TEXT NOT NULL,
   amino_acid_sequence_id TEXT NOT NULL,
   created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
@@ -83,18 +83,80 @@ CREATE TABLE ab_data.sequence_to_information(
   modified_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username)	
 );
 
+-- Attaching documents to antibody records
+CREATE TABLE ab_data.antibody_documents(
+    file_checksum TEXT NOT NULL PRIMARY KEY,
+    document_name TEXT NOT NULL,
+    document_description TEXT,
+    created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
+    date_added TIMESTAMPTZ  DEFAULT NOW() NOT NULL,
+    last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_by text DEFAULT CURRENT_USER
+);
+
+CREATE TABLE ab_data.documents_to_antibodies(
+    common_identifier TEXT NOT NULL,
+    file_checksum TEXT NOT NULL,
+    created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
+    date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_by text DEFAULT CURRENT_USER,
+    PRIMARY KEY(common_identifier, file_checksum)
+);
+
+-- Attach notes to antibody records
+CREATE TABLE ab_data.antibody_notes(
+    antibody_note_id SERIAL PRIMARY KEY,
+	note_text TEXT,
+	created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
+    date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_by text DEFAULT CURRENT_USER
+);
+
+CREATE TABLE ab_data.antibody_notes_to_information(
+    common_identifier TEXT NOT NULL,
+	antibody_note_id INTEGER,
+	created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
+    date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_by text DEFAULT CURRENT_USER,
+	PRIMARY KEY(common_identifier, antibody_note_id)
+);
+
+
+-- Attach notes to sequences
+CREATE TABLE ab_data.sequence_notes(
+	sequence_note_id SERIAL PRIMARY KEY,
+	note_text TEXT,
+	created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
+    date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_by text DEFAULT CURRENT_USER
+);
+
+CREATE TABLE ab_data.seq_notes_to_aa_seq(
+	amino_acid_sequence_id TEXT NOT NULL,
+	sequence_note_id INTEGER,
+	created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
+    date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_by text DEFAULT CURRENT_USER,
+	PRIMARY KEY(amino_acid_sequence_id, sequence_note_id)
+);
+	
 
 -- Add keys
-ALTER TABLE ab_data.sequence_to_information
+ALTER TABLE ab_data.sequences_to_information
 ADD CONSTRAINT seq_to_info_pk PRIMARY KEY(amino_acid_sequence_id, common_identifier);
 
-ALTER TABLE ab_data.sequence_to_information
+ALTER TABLE ab_data.sequences_to_information
 ADD CONSTRAINT seq_to_info_seq_fk FOREIGN KEY(amino_acid_sequence_id)
 REFERENCES ab_data.amino_acid_sequences(amino_acid_sequence_id)
 ON DELETE CASCADE
 ON UPDATE CASCADE;
 
-ALTER TABLE ab_data.sequence_to_information
+ALTER TABLE ab_data.sequences_to_information
 ADD CONSTRAINT seq_to_info_info_fk FOREIGN KEY(common_identifier)
 REFERENCES ab_data.antibody_information(common_identifier)
 ON DELETE CASCADE
@@ -111,6 +173,43 @@ ADD CONSTRAINT prog_aa_seq_par_fk FOREIGN KEY(amino_acid_parent_sequence_id)
 REFERENCES ab_data.amino_acid_sequences(amino_acid_sequence_id)
 ON DELETE CASCADE
 ON UPDATE CASCADE;
+
+ALTER TABLE ab_data.documents_to_antibodies
+ADD CONSTRAINT assoc_doc_doc_fk FOREIGN KEY(file_checksum)
+	REFERENCES ab_data.antibody_documents(file_checksum)
+    ON DELETE CASCADE
+	ON UPDATE CASCADE;
+
+ALTER TABLE ab_data.documents_to_antibodies
+ADD CONSTRAINT assoc_doc_ab_fk FOREIGN KEY(common_identifier)
+	REFERENCES ab_data.antibody_information(common_identifier)
+    ON DELETE CASCADE
+	ON UPDATE CASCADE;
+	
+ALTER TABLE ab_data.antibody_notes_to_information
+ADD CONSTRAINT ab_notes_ab_fk FOREIGN KEY(common_identifier)
+REFERENCES ab_data.antibody_information(common_identifier)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+  
+ALTER TABLE ab_data.antibody_notes_to_information
+ADD CONSTRAINT ab_notes_notes_fk FOREIGN KEY(antibody_note_id)
+REFERENCES ab_data.antibody_notes(antibody_note_id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE ab_data.seq_notes_to_aa_seq
+ADD CONSTRAINT seq_notes_to_aa_seq_seq_fk FOREIGN KEY(amino_acid_sequence_id)
+REFERENCES ab_data.amino_acid_sequences(amino_acid_sequence_id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ab_data.seq_notes_to_aa_seq
+ADD CONSTRAINT seq_notes_to_aa_seq_seqnotes_fk FOREIGN KEY(sequence_note_id)
+REFERENCES ab_data.sequence_notes(sequence_note_id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
 
 -- VIEWS
 CREATE OR REPLACE VIEW ab_data.vw_antibodies_information_and_sequence AS
@@ -133,7 +232,7 @@ FROM
   FROM
     ab_data.antibody_information ai
     JOIN
-      ab_data.sequence_to_information sti
+      ab_data.sequences_to_information sti
         ON
           ai.common_identifier = sti.common_identifier
     JOIN
@@ -151,7 +250,7 @@ FROM
   FROM
     ab_data.antibody_information ai
     JOIN
-      ab_data.sequence_to_information sti
+      ab_data.sequences_to_information sti
         ON
           ai.common_identifier = sti.common_identifier
     JOIN

@@ -85,10 +85,52 @@ CREATE TRIGGER set_modified_paas_trg
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.set_modified_trigger();
 
-DROP TRIGGER IF EXISTS set_modified_sti_trg ON ab_data.sequence_to_information;
+DROP TRIGGER IF EXISTS set_modified_sti_trg ON ab_data.sequences_to_information;
 CREATE TRIGGER set_modified_sti_trg
   BEFORE UPDATE
   ON ab_data.sequence_to_information 
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.set_modified_trigger();
+
+DROP TRIGGER IF EXISTS set_modified_abdoc_trg ON ab_data.antibody_documents;
+CREATE TRIGGER set_modified_abdoc_trg
+  BEFORE UPDATE
+  ON ab_data.antibody_documents 
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.set_modified_trigger();
+
+DROP TRIGGER IF EXISTS set_modified_abnote_trg ON ab_data.antibody_notes;
+CREATE TRIGGER set_modified_abnote_trg
+  BEFORE UPDATE
+  ON ab_data.antibody_notes 
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.set_modified_trigger();
+
+DROP TRIGGER IF EXISTS set_modified_docs2ab_trg ON ab_data.documents_to_antibodies;
+CREATE TRIGGER set_modified_docs2ab_trg 
+  BEFORE UPDATE
+  ON ab_data.documents_to_antibodies
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.set_modified_trigger();
+
+DROP TRIGGER IF EXISTS set_modified_seqnotes2aaseq_trg ON ab_data.seq_notes_to_aa_seq;
+CREATE TRIGGER set_modified_seqnotes2aaseq_trg 
+  BEFORE UPDATE
+  ON ab_data.seq_notes_to_aa_seq
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.set_modified_trigger();
+
+DROP TRIGGER IF EXISTS set_modified_seqnotes_trg ON ab_data.sequence_notes;
+CREATE TRIGGER set_modified_seqnotes_trg 
+  BEFORE UPDATE
+  ON ab_data.sequence_notes
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.set_modified_trigger();
+
+DROP TRIGGER IF EXISTS set_modified_abnotes2info_trg ON ab_data.antibody_notes_to_information;
+CREATE TRIGGER set_modified_abnotes2info_trg 
+  BEFORE UPDATE
+  ON ab_data.antibody_notes_to_information
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.set_modified_trigger();
 
@@ -118,6 +160,48 @@ DROP TRIGGER IF EXISTS update_delete_sti_trg ON ab_data.sequence_to_information;
 CREATE TRIGGER update_delete_sti_trg 
   AFTER UPDATE OR DELETE 
   ON ab_data.sequence_to_information 
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.audit_trigger();
+
+DROP TRIGGER IF EXISTS update_delete_abdoc_trg ON ab_data.antibody_documents;
+CREATE TRIGGER update_delete_abdoc_trg
+  AFTER UPDATE OR DELETE 
+  ON ab_data.antibody_documents 
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.audit_trigger();
+
+DROP TRIGGER IF EXISTS update_delete_abnote_trg ON ab_data.antibody_notes;
+CREATE TRIGGER update_delete_abnote_trg
+  AFTER UPDATE OR DELETE 
+  ON ab_data.antibody_notes 
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.audit_trigger();
+
+DROP TRIGGER IF EXISTS update_delete_abnote2info_trg ON ab_data.antibody_notes_to_information;
+CREATE TRIGGER update_delete_abnote2info_trg
+  AFTER UPDATE OR DELETE 
+  ON ab_data.antibody_notes_to_information 
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.audit_trigger();
+
+DROP TRIGGER IF EXISTS update_delete_doc2ab_trg ON ab_data.documents_to_antibodies;
+CREATE TRIGGER update_delete_doc2ab_trg
+  AFTER UPDATE OR DELETE 
+  ON ab_data.documents_to_antibodies
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.audit_trigger();
+
+DROP TRIGGER IF EXISTS update_delete_seqnotes2aaseq_trg ON ab_data.seq_notes_to_aa_seq;
+CREATE TRIGGER update_delete_seqnotes2aaseq_trg
+  AFTER UPDATE OR DELETE 
+  ON ab_data.seq_notes_to_aa_seq
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.audit_trigger();
+
+DROP TRIGGER IF EXISTS update_delete_seqnotes_trg ON ab_data.sequence_notes;
+CREATE TRIGGER update_delete_seqnotes_trg
+  AFTER UPDATE OR DELETE 
+  ON ab_data.sequence_notes
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.audit_trigger();
 

@@ -23,7 +23,13 @@ fluidPage(
                br(),
                actionButton('btn_load_ab', "Load"),
                textOutput('retval')
-               )
+               ),
+      tabPanel("Upload File",
+                selectInput("common_identifier", "Antibody Name", choices = c("", "AB1", "AB2", "...")),
+                textAreaInput("document_description", "Document Description"),
+                fileInput("file_upload", 'Choose RDS file', accept = c(".pdf", ".docx")),
+                textOutput("file_uploaded")
+      )
     )
   )
 )

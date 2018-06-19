@@ -123,7 +123,7 @@ DECLARE
 BEGIN
   l_new_information_record_created := user_defined_crud_functions.load_antibody_information(l_common_identifier, p_antibody_type, p_gene_name, p_antibody_source, p_source_database_url);
   l_new_sequence_record_created := user_defined_crud_functions.load_amino_acid_sequence(l_antibody_sequence_hash_id, l_antibody_sequence, p_chain_type);
-  INSERT INTO ab_data.sequence_to_information(common_identifier, amino_acid_sequence_id)
+  INSERT INTO ab_data.sequences_to_information(common_identifier, amino_acid_sequence_id)
     VALUES(l_common_identifier, l_antibody_sequence_hash_id);
   l_retval := FORMAT(l_retval, l_common_identifier, l_antibody_sequence_hash_id, l_new_information_record_created, l_new_sequence_record_created);
   INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
@@ -161,7 +161,7 @@ BEGIN
   FROM 
     ab_data.antibody_information ai
     JOIN
-      ab_data.sequence_to_information sti
+      ab_data.sequences_to_information sti
 	  ON
 	    ai.common_identifier = sti.common_identifier
     JOIN
@@ -229,6 +229,45 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT remove_antibody_record FROM user_defined_crud_functions.remove_antibody_record('IDARUCIZUMAB');
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.add_antibody_document_record(p_common_identifier TEXT,
+																				   p_file_checksum TEXT,
+																				   p_document_name TEXT,
+																			       p_document_description TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_retval TEXT;
+BEGIN
+  INSERT INTO ab_data.antibody_documents(file_checksum, document_name, document_description)
+	VALUES(p_file_checksum, p_document_name, p_document_description);
+  INSERT INTO ab_data.documents_to_antibodies(common_identifier, file_checksum)
+	VALUES(p_common_identifier, p_file_checksum);
+  l_retval := CONCAT(l_retval, FORMAT('Successful uploads to "antibody_documents" and "documents_to_antibodies" "%s", document name "%s', p_common_identifier, p_document_name));
+  INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+
+  RETURN l_retval;
+
+EXCEPTION
+  WHEN UNIQUE_VIOLATION THEN  
+    l_retval := CONCAT(l_retval, FORMAT('Duplicate entry for antibody "%s" and document name "%s".', p_common_identifier, p_document_name));
+    INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+    RETURN l_retval;
+  
+  WHEN OTHERS THEN
+     l_retval := FORMAT('ERROR: %s', SQLERRM);
+    INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+    RETURN l_retval;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
