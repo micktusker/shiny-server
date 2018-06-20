@@ -1,4 +1,4 @@
--- Sttructured documentation is added to all user_defined_crud_functions by executing the function "public.create_function_comment_statement".
+-- Structured documentation is added to all user_defined_crud_functions by executing the function "public.create_function_comment_statement".
 
 SELECT create_function_comment_statement(
 	'user_defined_crud_functions.add_antibody_document_record',
@@ -81,10 +81,10 @@ SELECT create_function_comment_statement(
 
 SELECT create_function_comment_statement(
 	'user_defined_crud_functions.load_amino_acid_sequence',
-	ARRAY['TEXT', 'TEXT', 'TEXT'],
+	ARRAY['TEXT', 'TEXT', 'TEXT', 'TEXT'],
 	'Add a row for a sequence to table |amino_acid_sequences| and return a Boolean indicating outcome.',
-	$$SELECT load_amino_acid_sequence FROM user_defined_crud_functions.load_amino_acid_sequence('EIVLTQSPAT LSLSPGERAT LSCRASQSVS SYLAWYQQKP GQAPRLLIYD ASNRATGIPARFSGSGSGTD FTLTISSLEP EDFAVYYCQQ RSNWPPTFGQ GTKVEIKRTV AAPSVFIFPPSDEQLKSGTA SVVCLLNNFY PREAKVQWKV DNALQSGNSQ ESVTEQDSKD STYSLSSTLTLSKADYEKHK VYACEVTHQG LSSPVTKSFN RGEC', 'e76e6ff7d3b7cf433e998243edc01509', 'L');$$,
-	'Given the amino acid sequence, the hash ID for the sequence and the chain type, create a record in table |amino_acid_sequences|. ' ||
+	$$SELECT load_amino_acid_sequence FROM user_defined_crud_functions.load_amino_acid_sequence('e76e6ff7d3b7cf433e998243edc01509', 'EIVLTQSPAT LSLSPGERAT LSCRASQSVS SYLAWYQQKP GQAPRLLIYD ASNRATGIPARFSGSGSGTD FTLTISSLEP EDFAVYYCQQ RSNWPPTFGQ GTKVEIKRTV AAPSVFIFPPSDEQLKSGTA SVVCLLNNFY PREAKVQWKV DNALQSGNSQ ESVTEQDSKD STYSLSSTLTLSKADYEKHK VYACEVTHQG LSSPVTKSFN RGEC', 'L', 'dummy_L');$$,
+	'Given the the hash ID for the sequence, the amino acid sequence, the chain type and sequence name, create a record in table |amino_acid_sequences|. ' ||
 	'This is an internal function that is NOT meant to be called by client code. It should only be used for an amino acid sequence that has been returned by function ' ||
 	'|get_cleaned_amino_acid_sequence| with a hash ID calculated from this value.'
 );
@@ -108,8 +108,12 @@ SELECT create_function_comment_statement(
 	'If the given identifier is not found, it will inform the caller of that and do a no-op on the database. ' ||
 	'Use this function with caution because it will remove records from the database. ' ||
 	'Table triggers will ensure that the deleted data is written to the audit table |update_delete_log|. ' ||
-	'The audit table records the username and the timestamp for the delete operations so that the operation is fully tracked by the system.'
+	'The audit table records the username and the timestamp for the delete operations so that the operation is fully tracked by the system. ' ||
+	'TO DO: Need to check this function again, does a simple DELETE using the antibody common_identifer perform the same task by using foreign key ' ||
+	'DELETE CASCADE? Also need to ensure that the triggers are doing the audit correctly.'
 );
+
+
 
 
 

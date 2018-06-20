@@ -47,6 +47,7 @@ CREATE TABLE ab_data.amino_acid_sequences(
   amino_acid_sequence_id TEXT PRIMARY KEY,
   amino_acid_sequence TEXT NOT NULL,
   chain_type TEXT,
+  sequence_name TEXT NOT NULL,
   created_by TEXT NOT NULL DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
   date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -261,7 +262,27 @@ FROM
      aas.chain_type = 'L') sq2
   ON
     sq1.common_identifier = sq2.common_identifier;
-COMMENT ON VIEW ab_data.vw_antibodies_information_and_sequence IS 'Brings together the H and L sequences with the antibody information for all antibodies entered into the system. This view can be filtered by client code';
+
+CREATE OR REPLACE VIEW ab_data.vw_amino_acid_sequences_not_linked_to_ab AS
+SELECT *
+FROM
+  ab_data.amino_acid_sequences
+WHERE
+  amino_acid_sequence_id IN(
+  SELECT
+    aas.amino_acid_sequence_id
+  FROM
+    ab_data.amino_acid_sequences aas
+  EXCEPT  
+  SELECT
+    sti.amino_acid_sequence_id
+  FROM
+    ab_data.sequences_to_information sti);
+
+
+
+
+
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA ab_data TO mabmindergroup;

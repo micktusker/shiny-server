@@ -76,15 +76,16 @@ SECURITY INVOKER;
 
 CREATE OR REPLACE FUNCTION user_defined_crud_functions.load_amino_acid_sequence(p_amino_acid_sequence_hash_id TEXT, 
 																				p_amino_acid_sequence TEXT, 
-																				p_chain_type TEXT)
+																				p_chain_type TEXT,
+																				p_sequence_name TEXT)
 RETURNS BOOLEAN
 AS
 $$
 DECLARE
   l_new_record_created BOOLEAN;
 BEGIN
-  INSERT INTO ab_data.amino_acid_sequences(amino_acid_sequence_id, amino_acid_sequence, chain_type)
-    VALUES(p_amino_acid_sequence_hash_id, p_amino_acid_sequence, p_chain_type);
+  INSERT INTO ab_data.amino_acid_sequences(amino_acid_sequence_id, amino_acid_sequence, chain_type, sequence_name)
+    VALUES(p_amino_acid_sequence_hash_id, p_amino_acid_sequence, p_chain_type, p_sequence_name);
   l_new_record_created := TRUE;
   
   RETURN l_new_record_created;
@@ -117,9 +118,10 @@ DECLARE
   l_retval TEXT := 'Successful upload of record for antibody identifier "%s" and antibody sequence hash ID "%s". New information row created: "%s". New sequence row created: "%s"';
   l_new_information_record_created BOOLEAN;
   l_new_sequence_record_created BOOLEAN;
+  l_sequence_name TEXT := CONCAT(l_common_identifier, '_', p_chain_type);
 BEGIN
   l_new_information_record_created := user_defined_crud_functions.load_antibody_information(l_common_identifier, p_antibody_type, p_gene_name, p_antibody_source, p_source_database_url);
-  l_new_sequence_record_created := user_defined_crud_functions.load_amino_acid_sequence(l_antibody_sequence_hash_id, l_antibody_sequence, p_chain_type);
+  l_new_sequence_record_created := user_defined_crud_functions.load_amino_acid_sequence(l_antibody_sequence_hash_id, l_antibody_sequence, p_chain_type, l_sequence_name);
   INSERT INTO ab_data.sequences_to_information(common_identifier, amino_acid_sequence_id)
     VALUES(l_common_identifier, l_antibody_sequence_hash_id);
   l_retval := FORMAT(l_retval, l_common_identifier, l_antibody_sequence_hash_id, l_new_information_record_created, l_new_sequence_record_created);

@@ -127,3 +127,21 @@ SELECT create_function_comment_statement('get_function_details_for_schema',
                                            'the constituent parts. ' ||
                                            'The function OID is a unique identifier that is especially useful for identifying overloaded functions.' ||
                                            'It can be used as an argument to system catalog information functions such as *pg_get_functiondef(func_oid)*.');
+
+-- VIEWS
+CREATE OR REPLACE VIEW vw_user_defined_crud_functions AS                                        
+SELECT
+  function_oid,
+  function_name,
+  function_comment,
+  function_comment->>'Purpose' purpose,
+  function_comment->>'Example' example_call,
+  function_comment->>'Notes' notes,
+  function_comment->>'Commenter_Username' comment_added_by,
+  function_comment->>'Comment_Date' comment_date,
+  pg_get_functiondef(function_oid) function_def,
+  pg_get_function_arguments(function_oid) function_args,
+  pg_get_function_result(function_oid) function_returns
+FROM 
+  get_function_details_for_schema('user_defined_crud_functions', 'NON_STANDARD_COMMENT');
+COMMENT ON VIEW vw_user_defined_crud_functions IS 'Provides information on all UDFs defined in the schema "user_defined_crud_functions"';
