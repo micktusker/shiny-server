@@ -1,7 +1,7 @@
 -- user_defined_function_documentor.sql
 -- Set of functions for commenting other functions and for parsing and returning documentation.
 -- See: https://github.com/Rotifer/PostgreSQL_Applications/blob/master/documenting_user_defined_functions.md
-
+-- public schema only contains stored functions for general use. No tables or views are stored here.
 CREATE OR REPLACE FUNCTION create_function_comment_statement(p_function_name TEXT, p_arg_types TEXT[], p_purpose TEXT, p_example TEXT, p_notes TEXT DEFAULT '')
 RETURNS TEXT
 AS

@@ -21,9 +21,6 @@ $$
 LANGUAGE plpgsql
 IMMUTABLE
 SECURITY DEFINER;
-SELECT get_cleaned_amino_acid_sequence FROM user_defined_crud_functions.get_cleaned_amino_acid_sequence('PQVTLWQRPI VTIKIGGQLK EALLDTGADD TVLEEMSLPG KWKPKMIGGIX', 'X');
-
-
 
 CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_sequence_hash_id(p_ab_sequence TEXT)
 RETURNS TEXT
@@ -176,6 +173,29 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT get_aa_seq_ids_for_ab_name FROM user_defined_crud_functions.get_aa_seq_ids_for_ab_name('OBILTOXAXIMAB');
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_aa_sequences_for_ab_name(p_common_identifer TEXT)
+RETURNS TABLE(amino_acid_sequence TEXT, chain_type TEXT)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    aas.amino_acid_sequence,
+	aas.chain_type
+  FROM
+    ab_data.amino_acid_sequences aas
+  WHERE
+    amino_acid_sequence_id IN(
+	  SELECT
+		get_aa_seq_ids_for_ab_name
+	  FROM
+		user_defined_crud_functions.get_aa_seq_ids_for_ab_name(p_common_identifer)
+	);
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
 CREATE OR REPLACE FUNCTION user_defined_crud_functions.is_ab_common_identifier_present(p_common_identifier TEXT)
 RETURNS BOOLEAN
 AS
@@ -199,7 +219,7 @@ END;
 $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
-SELECT is_ab_common_identifier_present FROM user_defined_crud_functions.is_ab_common_identifier_present('OBILTOXAXIMAB');
+-- SELECT is_ab_common_identifier_present FROM user_defined_crud_functions.is_ab_common_identifier_present('OBILTOXAXIMAB');
 
 CREATE OR REPLACE FUNCTION user_defined_crud_functions.remove_antibody_record(p_common_identifier TEXT)
 RETURNS TEXT
@@ -228,7 +248,7 @@ END;
 $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
-SELECT remove_antibody_record FROM user_defined_crud_functions.remove_antibody_record('IDARUCIZUMAB');
+-- SELECT remove_antibody_record FROM user_defined_crud_functions.remove_antibody_record('IDARUCIZUMAB');
 
 CREATE OR REPLACE FUNCTION user_defined_crud_functions.add_antibody_document_record(p_common_identifier TEXT,
 																				   p_file_checksum TEXT,

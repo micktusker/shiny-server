@@ -268,5 +268,12 @@ GRANT USAGE ON SCHEMA ab_data TO mabmindergroup;
 GRANT INSERT, UPDATE, DELETE, SELECT ON ALL TABLES IN SCHEMA ab_data TO mabmindergroup;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ab_data TO mabmindergroup;
 
+-- Remove edit permissions on lookup tables for non-admin users
+REVOKE ALL ON ab_data.antibody_sources FROM mabmindergroup;
+GRANT SELECT ON ab_data.antibody_sources TO mabmindergroup;
+REVOKE ALL ON ab_data.antibody_types FROM mabmindergroup;
+GRANT SELECT ON ab_data.antibody_types TO mabmindergroup;
+REVOKE ALL ON ab_data.usernames FROM mabmindergroup;
+GRANT SELECT ON ab_data.usernames TO mabmindergroup;
 
 
