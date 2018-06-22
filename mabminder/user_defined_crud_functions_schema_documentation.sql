@@ -104,7 +104,7 @@ SELECT create_function_comment_statement(
 	ARRAY['TEXT'],
 	'Remove an antibody and all its associated sequences from the database for a given antibody name.',
 	$$SELECT remove_antibody_record FROM user_defined_crud_functions.remove_antibody_record('OBILTOXAXIMAB');$$,
-	'he function does a case- and white space-independent operation for the given antibody name and retrns a string summarising what was done. ' ||
+	'The function does a case- and white space-independent operation for the given antibody name and retrns a string summarising what was done. ' ||
 	'If the given identifier is not found, it will inform the caller of that and do a no-op on the database. ' ||
 	'Use this function with caution because it will remove records from the database. ' ||
 	'Table triggers will ensure that the deleted data is written to the audit table |update_delete_log|. ' ||
@@ -113,6 +113,15 @@ SELECT create_function_comment_statement(
 	'DELETE CASCADE? Also need to ensure that the triggers are doing the audit correctly.'
 );
 
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.load_antibody_document',
+	ARRAY['TEXT', 'TEXT', 'TEXT', 'TEXT'],
+	'Upload a document to the server and associate it with an antibody record in the database.',
+	$$SELECT user_defined_crud_functions.load_antibody_document('DARATUMUMAB', 'abc123def', 'Dummy Document.doc', 'A dummy test for a non-existent document.');$$,
+	'The webpage uploads a file to the server and this function stores about the uploaded file to the database. ' ||
+	'The client calculates the file checksum and this is used to assign a unique identifer to the uploaded file.' ||
+	'The uploaded file is associated with an antibody by a simultaneous uptload to the join table |documents_to_antibodies|.'
+);
 
 
 
