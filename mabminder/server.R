@@ -1,17 +1,22 @@
 shinyServer(function(input, output, session){
-  db <- reactiveValues(pgConn = NULL)
+  db <- reactiveValues(pgConn = NULL, abSummaryDF = NULL)
   observeEvent(input$btn_login, {
     userName <- input$user_name
     password <- input$password
     db$pgConn <- getPgConnection(userName, password)
+    db$abSummaryDF <- pullAntibodiesInformationAndSequence(db$pgConn)
+    output$antibody_data_summary <- DT::renderDataTable({db$abSummaryDF})
     output$logged_status <- renderText(sprintf("%s logged in!", userName))
+    
   })
   observeEvent(input$btn_logout, {
+    DBI::dbDisconnect(db$pgConn)
     db$pgConn <- NULL
     output$logged_status <- renderText("Logged out!")
   })
   observeEvent(input$btn_load_ab, {
-    commonIdentifier <- input$common_identifier
+    commonIdentifier <- input$antibody_identifier
+    print(commonIdentifier)
     antibodyType <- input$antibody_type
     antibodySource <- input$antibody_source
     geneName <- input$gene_name
@@ -40,7 +45,7 @@ shinyServer(function(input, output, session){
                                                 lChainSequence,
                                                 'L')
     }
-    updateTextInput(session, "common_identifier", value = "")
+    updateTextInput(session, "antibody_identifier", value = "")
     updateTextInput(session, "antibody_type", value = "")
     updateSelectInput(session, "antibody_source", selected = NULL)
     updateTextInput(session, "gene_name", value = "")
@@ -57,9 +62,11 @@ shinyServer(function(input, output, session){
     inputFileName <- input$file_upload$datapath
     documentDescription <- input$document_description
     fromBasename <- input$file_upload$name
-    storedFilePath <- storeFile(db$pgConn, inputFileName, fromBasename, documentDescription)
+    targetIdentifier <- input$target_identifier_fileupload
+    antibodyName <- input$antibody_name_fileupload
+    loadResult <- storeFile(db$pgConn, inputFileName, fromBasename, documentDescription, targetIdentifier, antibodyName)
     
-    return(storedFilePath)
+    return(loadResult)
     
   })
   

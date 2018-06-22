@@ -289,6 +289,38 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.load_antibody_document(p_ab_common_identifier TEXT,
+																			  p_file_checksum TEXT,
+																			  p_document_name TEXT,
+																			  p_document_description TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_retval TEXT;
+  l_ab_common_identifier TEXT = TRIM(UPPER(p_ab_common_identifier));
+BEGIN
+  INSERT INTO ab_data.antibody_documents(file_checksum, document_name, document_description)
+    VALUES(p_file_checksum, p_document_name, p_document_description);
+  INSERT INTO ab_data.documents_to_antibodies(common_identifier, file_checksum) 
+    VALUES(l_ab_common_identifier, p_file_checksum);
+  l_retval := FORMAT('Successful upload for document "%s", antibody "%s".', p_document_name, l_ab_common_identifier);
+  INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+  RETURN l_retval;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    l_retval := FORMAT('ERROR: %s', SQLERRM);
+    INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+    RETURN l_retval;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
 
 
 -- Reset permissions on re-created schema and its objects

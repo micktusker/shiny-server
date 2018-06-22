@@ -36,25 +36,54 @@ createNewAntibodySequenceEntry <- function(pgConn, commonIdentifier, antibodyTyp
   
 }
 
+# Pull Data
+
+pullAntibodiesInformationAndSequence <- function(pgConn) {
+  sql <- "SELECT * FROM ab_data.vw_antibodies_information_and_sequence"
+  antibodiesInformationAndSequence <- dbFetch(dbSendQuery(pgConn, sql))
+  return(antibodiesInformationAndSequence)
+}
+
+
 # Upload a file
 dirForUploadedFiles <- './uploaded_files'
 if(!dir.exists(dirForUploadedFiles)) {
   dir.create(dirForUploadedFiles)
 }
 
-writeFileRecordToDB <- function(pgConn, chkSum, fromBasename, documentDescription) {
-  print("Called!")
+makeFullDir <- function(targetIdentifier, antibodyName) {
+  if(!dir.exists(file.path(dirForUploadedFiles, targetIdentifier))) {
+    dir.create(file.path(dirForUploadedFiles, targetIdentifier))
+  }
+  if(!dir.exists(file.path(dirForUploadedFiles, targetIdentifier, antibodyName))) {
+    dir.create(file.path(dirForUploadedFiles, targetIdentifier, antibodyName))
+  }
+  
+  return(file.path(dirForUploadedFiles, targetIdentifier, antibodyName))
+  
 }
 
-storeFile <- function(pgConn, fromFullPath, fromBasename, documentDescription) {
-  print(fromBasename)
-  if(file.exists(file.path(dirForUploadedFiles, fromBasename))) {
-    file.remove(file.path(dirForUploadedFiles, fromBasename))
-  }
-  file.copy(fromFullPath, file.path(dirForUploadedFiles, fromBasename))
-  chkSum <- md5sum(file.path(dirForUploadedFiles, fromBasename))
-  writeFileRecordToDB(pgConn, chkSum, fromBasename, documentDescription)
+writeFileRecordToDB <- function(pgConn, antibodyName, fileChecksum, documentName, documentDescription) {
+  sqlTmpl <- "SELECT user_defined_crud_functions.load_antibody_document(?antibodyName, ?fileChecksum, ?documentName, ?documentDescription)"
+  sql <- sqlInterpolate(DBI::ANSI(), sqlTmpl,
+                        antibodyName = antibodyName,
+                        fileChecksum = fileChecksum,
+                        documentName = documentName,
+                        documentDescription = documentDescription)
+  loadResult <- DBI::dbGetQuery(pgConn, sql)
+
+  return(loadResult$load_antibody_document)
   
-  return(file.path(dirForUploadedFiles, fromBasename))
+}
+
+#loadResult <- storeFile(db$pgConn, inputFileName, fromBasename, documentDescription, targetIdentifier, antibodyName)
+storeFile <- function(pgConn, fromFullPath, fromBasename, documentDescription, targetIdentifier, antibodyName) {
+  fullDir <- makeFullDir(targetIdentifier, antibodyName)
+  newFileName <- file.path(fullDir, fromBasename)
+  file.copy(fromFullPath, newFileName)
+  chkSum <- md5sum(file.path(newFileName))
+  loadResult <- as.vector(writeFileRecordToDB(pgConn, antibodyName, chkSum, newFileName, documentDescription))
+  
+  return(loadResult)
   
 }
