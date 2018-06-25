@@ -27,12 +27,16 @@ fluidPage(
       tabPanel("View Data",
                DT::dataTableOutput("antibody_data_summary")
                ),
-      tabPanel("Upload File",
+      tabPanel("Upload/Download File",
                 selectInput("target_identifier_fileupload", "Target Name", choices = c("", "CD25", "CD38")),
                 textInput("antibody_name_fileupload", "Antibody Name"),
                 textAreaInput("document_description", "Document Description"),
                 fileInput("file_upload", 'Choose RDS file', accept = c(".pdf", ".docx")),
-                textOutput("file_uploaded")
+                tags$hr(),
+                tags$h2("File Download"),
+                textOutput("file_uploaded"),
+                uiOutput("select_download_filename"),
+                downloadButton("download_file", label = "Download")
       )
     )
   )
