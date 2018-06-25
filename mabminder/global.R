@@ -87,3 +87,12 @@ storeFile <- function(pgConn, fromFullPath, fromBasename, documentDescription, t
   return(loadResult)
   
 }
+
+# Download files
+getFilenamesStoredOnServer <- function(pgConn) {
+  sql <- 'SELECT user_defined_crud_functions.get_uploaded_filenames()'
+  filenamesStoredOnServer <- DBI::dbGetQuery(pgConn, sql)
+  
+  return(filenamesStoredOnServer)
+  
+}

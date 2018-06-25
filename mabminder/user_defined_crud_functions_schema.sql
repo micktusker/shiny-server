@@ -321,6 +321,55 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_uploaded_filenames()
+RETURNS TABLE(abname_filename TEXT)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    ad.document_name
+  FROM
+    ab_data.antibody_documents ad
+    JOIN
+      ab_data.documents_to_antibodies dta
+	  ON
+	    ad.file_checksum = dta.file_checksum
+  ORDER BY 1;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.add_note_to_antibody(p_ab_common_identifier TEXT, p_antibody_note_text TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_antibody_note_id INTEGER;
+  l_retval TEXT := 'Note ID "%s"  created for antibody "%s".';
+BEGIN
+  INSERT INTO ab_data.antibody_notes(note_text) 
+  	VALUES(p_antibody_note_text) RETURNING antibody_note_id INTO l_antibody_note_id;
+  INSERT INTO ab_data.antibody_notes_to_information(common_identifier, antibody_note_id)
+  	VALUES(p_ab_common_identifier, l_antibody_note_id);
+  l_retval := FORMAT(l_retval, l_antibody_note_id, p_ab_common_identifier);
+  INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+  RETURN l_retval;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    l_retval := FORMAT('ERROR: %s', SQLERRM);
+    INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+    RETURN l_retval;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
 
 
 -- Reset permissions on re-created schema and its objects

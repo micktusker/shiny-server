@@ -124,5 +124,23 @@ SELECT create_function_comment_statement(
 );
 
 
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_uploaded_filenames',
+	NULL,
+	'Return a list of names for all files stored on the server.',
+	$$SELECT user_defined_crud_functions.get_uploaded_filenames();$$,
+	'Used to populate the Shiny webpage file download selection with a sorted list of all files stored on the server. ' ||
+	'How the file list is displayed on the webpage to the user will be reviewed.'
+);
+
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.add_note_to_antibody',
+	ARRAY['TEXT', 'TEXT'],
+	'Add a descriptive note to an antibody record in the database.',
+	$$SELECT user_defined_crud_functions.add_note_to_antibody('DARATUMUMAB', 'This is a test note!');$$,
+	'Used to attach user-defined descriptive notes to database'
+);
+
+
 
 

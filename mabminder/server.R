@@ -1,10 +1,11 @@
 shinyServer(function(input, output, session){
-  db <- reactiveValues(pgConn = NULL, abSummaryDF = NULL)
+  db <- reactiveValues(pgConn = NULL, abSummaryDF = NULL, filenamesStoredOnServer = NULL)
   observeEvent(input$btn_login, {
     userName <- input$user_name
     password <- input$password
     db$pgConn <- getPgConnection(userName, password)
     db$abSummaryDF <- pullAntibodiesInformationAndSequence(db$pgConn)
+    db$filenamesStoredOnServer <- getFilenamesStoredOnServer(db$pgConn)
     output$antibody_data_summary <- DT::renderDataTable({db$abSummaryDF})
     output$logged_status <- renderText(sprintf("%s logged in!", userName))
     
@@ -72,5 +73,16 @@ shinyServer(function(input, output, session){
   
   output$file_uploaded <- renderText(storedFilePath())
   
+  output$select_download_filename <- renderUI({
+      selectInput("select_download_filename", label = "Select a file to download", choices = db$filenamesStoredOnServer, width="500px")
+    })
   
+  output$download_file <- downloadHandler(
+    filename = function() {
+      basename(input$select_download_filename)
+    }, 
+    content = function(file) {
+      file.copy(input$select_download_filename, file)
+    }, 
+    contentType = NA)
 })
