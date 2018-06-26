@@ -134,6 +134,13 @@ CREATE TRIGGER set_modified_abnotes2info_trg
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.set_modified_trigger();
 
+DROP TRIGGER IF EXISTS set_modified_abnameslu_trg ON ab_data.antibody_names_lookup;
+CREATE TRIGGER set_modified_abnameslu_trg 
+  BEFORE UPDATE
+  ON ab_data.antibody_names_lookup
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.set_modified_trigger();
+
 -- audit triggers
 DROP TRIGGER IF EXISTS update_delete_aas_trg ON ab_data.amino_acid_sequences;
 CREATE TRIGGER update_delete_aas_trg 
@@ -204,6 +211,14 @@ CREATE TRIGGER update_delete_seqnotes_trg
   ON ab_data.sequence_notes
   FOR EACH ROW 
 EXECUTE PROCEDURE audit_logs.audit_trigger();
+
+DROP TRIGGER IF EXISTS update_delete_abnameslu_trg ON ab_data.antibody_names_lookup;
+CREATE TRIGGER update_delete_abnameslu_trg
+  AFTER UPDATE OR DELETE 
+  ON ab_data.antibody_names_lookup
+  FOR EACH ROW 
+EXECUTE PROCEDURE audit_logs.audit_trigger();
+
 
 
 -- Reset permissions on re-created schema and its objects

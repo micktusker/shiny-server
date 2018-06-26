@@ -37,6 +37,12 @@ fluidPage(
                 textOutput("file_uploaded"),
                 uiOutput("select_download_filename"),
                 downloadButton("download_file", label = "Download")
+      ),
+      tabPanel("Add Note To Antibody",
+               uiOutput("ab_list_add_note_to_ab"),
+               textAreaInput("txt_ab_note_text", "Antibody Note", width = "1000px", height = "100px"),
+               actionButton("btn_add_ab_note", "Add Note"),
+               textOutput("txto_loaded_ab_note_result")
       )
     )
   )

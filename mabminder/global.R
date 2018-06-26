@@ -96,3 +96,15 @@ getFilenamesStoredOnServer <- function(pgConn) {
   return(filenamesStoredOnServer)
   
 }
+
+# Add note to antibody
+loadAbNote <- function(pgConn, abCommonIdentifier, abNoteText) {
+  sqlTmpl <- "SELECT add_note_to_antibody FROM user_defined_crud_functions.add_note_to_antibody(?abCommonIdentifier, ?abNoteText)"
+  sql <- sqlInterpolate(DBI::ANSI(), sqlTmpl,
+                        abCommonIdentifier = abCommonIdentifier, 
+                        abNoteText = abNoteText)
+  loadResult <- DBI::dbGetQuery(pgConn, sql)
+  
+  return(loadResult$add_note_to_antibody)
+  
+}

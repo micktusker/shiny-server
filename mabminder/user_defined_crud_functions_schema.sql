@@ -370,6 +370,40 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.load_aa_sequence_and_ab_join(p_ab_common_identifier TEXT,
+																				    p_aa_sequence TEXT,
+																				    p_chain_type TEXT,
+																				    p_sequence_name TEXT DEFAULT NULL)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_ab_common_identifier TEXT := TRIM(UPPER(p_ab_common_identifier));
+  l_aa_sequence TEXT :=  user_defined_crud_functions.get_cleaned_amino_acid_sequence(p_aa_sequence);
+  l_sequence_hash_id TEXT := user_defined_crud_functions.get_sequence_hash_id(p_aa_sequence);
+  l_sequence_name TEXT := COALESCE(p_sequence_name, CONCAT(p_ab_common_identifier, '_', p_chain_type));
+  l_retval TEXT := 'load_aa_sequence_and_ab_join: Antibody name: "%s", sequence hash ID: "%s" inserted!';
+BEGIN
+  INSERT INTO ab_data.amino_acid_sequences(amino_acid_sequence_id, amino_acid_sequence, chain_type, sequence_name)
+    VALUES(l_sequence_hash_id, l_aa_sequence, p_chain_type, l_sequence_name);
+  INSERT INTO ab_data.sequences_to_information(common_identifier, amino_acid_sequence_id) 
+    VALUES(l_ab_common_identifier, l_sequence_hash_id);
+  l_retval := FORMAT(l_retval, l_ab_common_identifier, l_sequence_hash_id);
+  INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+  RETURN l_retval;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    l_retval := FORMAT('ERROR: %s', SQLERRM);
+    INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(l_retval);
+  
+    RETURN l_retval;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
 
 
 -- Reset permissions on re-created schema and its objects

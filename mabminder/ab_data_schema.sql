@@ -39,7 +39,7 @@ INSERT INTO ab_data.antibody_sources(source_name) VALUES('Tusk'), ('Commercial t
 CREATE TABLE ab_data.antibody_types(
   antibody_type TEXT PRIMARY KEY
 );
-INSERT INTO ab_data.antibody_types(antibody_type) VALUES('BiTEs'), ('Chimeric human-murine IgG1'), ('Chimeric IgG1'), ('Chimeric IgG1κ'), ('Chimeric (mouse/human) IgG1/κ'), ('Human FaB'), ('Human IgG1'), ('Human IgG1/κ'), ('Human IgG2'), ('Human IgG2/κ'), ('Human IgG4'), ('Humanized IgG1'), ('Murine IgG2a');
+INSERT INTO ab_data.antibody_types(antibody_type) VALUES('mIgG2a'), ('BiTEs'), ('Chimeric human-murine IgG1'), ('Chimeric IgG1'), ('Chimeric IgG1κ'), ('Chimeric (mouse/human) IgG1/κ'), ('Human FaB'), ('Human IgG1'), ('Human IgG1/κ'), ('Human IgG2'), ('Human IgG2/κ'), ('Human IgG4'), ('Humanized IgG1'), ('Murine IgG2a');
 
 
 -- data tables
@@ -146,6 +146,22 @@ CREATE TABLE ab_data.seq_notes_to_aa_seq(
 	PRIMARY KEY(amino_acid_sequence_id, sequence_note_id)
 );
 	
+CREATE TABLE ab_data.antibody_synonym_types(
+    antibody_synonym_type TEXT PRIMARY KEY
+);
+INSERT INTO ab_data.antibody_synonym_types(antibody_synonym_type) VALUES('ADI_NAME'), ('EXTERNAL_ANTIBODY_NAME'), ('TUSK_NAME');
+
+CREATE TABLE ab_data.antibody_names_lookup(
+    antibody_names_lookup_id SERIAL PRIMARY KEY,
+	common_identifier TEXT NOT NULL,
+	antibody_synonym_type TEXT NOT NULL REFERENCES ab_data.antibody_synonym_types(antibody_synonym_type),
+	alternative_name TEXT NOT NULL,
+    created_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
+    date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_by TEXT DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username)	
+);
+
 
 -- Add keys
 ALTER TABLE ab_data.sequences_to_information
@@ -211,6 +227,11 @@ REFERENCES ab_data.sequence_notes(sequence_note_id)
   ON UPDATE CASCADE
   ON DELETE CASCADE;
 
+ALTER TABLE ab_data.antibody_names_lookup
+ADD CONSTRAINT ab_names_lu_ab_info_fk FOREIGN KEY(common_identifier)
+REFERENCES ab_data.antibody_information(common_identifier)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
 
 -- VIEWS
 CREATE OR REPLACE VIEW ab_data.vw_antibodies_information_and_sequence AS

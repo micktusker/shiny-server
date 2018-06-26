@@ -12,6 +12,8 @@ COMMENT ON TABLE ab_data.seq_notes_to_aa_seq IS 'A join table between "amino_aci
 COMMENT ON TABLE ab_data.sequence_notes IS 'Extra details of interest to users about a particular amino acid sequence can be defined here.';
 COMMENT ON TABLE ab_data.sequences_to_information IS 'A join table between "amino_acid_sequencess" and "antibody_information".';
 COMMENT ON TABLE ab_data.usernames IS 'A lookup table that stores a list of user names for accounts that can enter and view data.  Administrator account names are deliberately excluded from this table to ensure that data is entered by ordinary  users who are members of the "mabmindergroup" role. It can only be updated by an administrator.';
+COMMENT ON TABLE ab_data.antibody_synonym_types IS 'Stores a list of allowable types for synonyms for antibodies'; 
+COMMENT ON TABLE ab_data.antibody_names_lookup IS 'Used to associated the recognised antibody identifier with multiple other names.';
 
 -- Columns
 COMMENT ON COLUMN ab_data.amino_acid_sequences.amino_acid_sequence IS 'The single letter amino acid sequence of an antibody heavy or light chain or fragment thereof. By default the stored function that inserts this value restricts the letters to the standard 20 amino acids.';

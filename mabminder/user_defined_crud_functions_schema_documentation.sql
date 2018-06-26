@@ -141,6 +141,17 @@ SELECT create_function_comment_statement(
 	'Used to attach user-defined descriptive notes to database'
 );
 
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.load_aa_sequence_and_ab_join',
+	ARRAY['TEXT', 'TEXT', 'TEXT', 'TEXT'],
+	'Insert an amino acid sequence row and associated with the given antibody identifer.',
+	$$SELECT user_defined_crud_functions.load_aa_sequence_and_ab_join('TSK031001', 'QVQLVQSGAEVKKPGASVKVSCKASGYTFTGYYMHWVRQAPGQGLEWMGSINPNSGGTNYAQKFQGRVTMTRDTSISTAYMELSRLRSDDTAVYYCARDGLMDVWGQGTAVTVSS', 'H')$$,
+	'Not to be confused with function |load_amino_acid_sequence| which is not meant to be called externally. ' ||
+	'This function is meant to be called externally and can be used to load antibody amino acide sequences ' ||
+	'independently of the antibody information. It also updates the table |sequences_to_information| that associated sequences ' ||
+	'with antibody identifers. Note that the sequence name is optional and if not provided, it is generated automatically by ' ||
+	'concatenating the antibody name with an underscore and the chain type. It uses the COALESCE function to determine if the sequence name is NULL.'
+);
 
 
 

@@ -1,11 +1,12 @@
 shinyServer(function(input, output, session){
-  db <- reactiveValues(pgConn = NULL, abSummaryDF = NULL, filenamesStoredOnServer = NULL)
+  db <- reactiveValues(pgConn = NULL, abSummaryDF = NULL, filenamesStoredOnServer = NULL, abCommonIdentifiers = NULL)
   observeEvent(input$btn_login, {
     userName <- input$user_name
     password <- input$password
     db$pgConn <- getPgConnection(userName, password)
     db$abSummaryDF <- pullAntibodiesInformationAndSequence(db$pgConn)
     db$filenamesStoredOnServer <- getFilenamesStoredOnServer(db$pgConn)
+    db$abCommonIdentifiers <- unique(sort(c("", db$abSummaryDF$common_identifier)))
     output$antibody_data_summary <- DT::renderDataTable({db$abSummaryDF})
     output$logged_status <- renderText(sprintf("%s logged in!", userName))
     
@@ -55,6 +56,7 @@ shinyServer(function(input, output, session){
     updateTextInput(session, "lchain_sequence", value = "")
     output$retval <- renderText(stringr::str_c(resultH, resultL, sep = "\n"))
   })
+  # Upload/Download files
   storedFilePath <- reactive({
     uploadFile <- input$file_upload
     if(is.null(uploadFile)) {
@@ -85,4 +87,15 @@ shinyServer(function(input, output, session){
       file.copy(input$select_download_filename, file)
     }, 
     contentType = NA)
+  
+  # Add Ab note
+  output$ab_list_add_note_to_ab <- renderUI({
+    selectInput("ab_list_add_note_to_ab", label = "Select Antibody for Note", choices = db$abCommonIdentifiers)
+  })
+  observeEvent(input$btn_add_ab_note, {
+    abCommonIdentifier <- input$ab_list_add_note_to_ab
+    abNoteText <- input$txt_ab_note_text
+    loadResult <- loadAbNote(db$pgConn, abCommonIdentifier, abNoteText)
+    output$txto_loaded_ab_note_result <- renderText(loadResult)
+  })
 })
