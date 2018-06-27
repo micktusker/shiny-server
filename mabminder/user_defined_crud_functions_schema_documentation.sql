@@ -153,5 +153,12 @@ SELECT create_function_comment_statement(
 	'concatenating the antibody name with an underscore and the chain type. It uses the COALESCE function to determine if the sequence name is NULL.'
 );
 
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_sequence_hash_ids',
+	ARRAY['TEXT[]'],
+	'Return an array of MD5 hash IDs for an array of amino acid sequences.',
+	$$SELECT user_defined_crud_functions.get_sequence_hash_ids(ARRAY['QVQLVQSGAEVKKPGSSVKVSCKASGGTFSSLAI', 'WVRQAPGQGLEWMGGIIPIFGDASYAQKF']);$$,
+	'This function has a singular version |get_sequence_hash_id| that it calls as it loops over the input array and builds the output array.'
+);
 
 

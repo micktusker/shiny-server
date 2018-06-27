@@ -405,6 +405,29 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_sequence_hash_ids(p_aa_sequences TEXT[])
+RETURNS TEXT[]
+AS
+$$
+DECLARE
+  l_sequence_hash_ids TEXT[];
+  l_counter INTEGER := 1;
+  l_element TEXT;
+  l_sequence_hash_id TEXT;
+BEGIN
+  FOREACH l_element IN ARRAY p_aa_sequences
+  LOOP
+    l_sequence_hash_id := user_defined_crud_functions.get_sequence_hash_id(l_element);
+	l_sequence_hash_ids[l_counter] := l_sequence_hash_id;
+	l_counter := l_counter + 1;
+  END LOOP;
+  
+  RETURN l_sequence_hash_ids;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
