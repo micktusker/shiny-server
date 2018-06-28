@@ -429,6 +429,169 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 
+-- Functions for client output
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_ab_data_for_aa_seq(p_search_aa_seq TEXT)
+RETURNS JSONB
+AS
+$$
+DECLARE
+  l_sequence_hash_id TEXT := user_defined_crud_functions.get_sequence_hash_id(p_search_aa_seq);
+  l_ab_common_identifiers TEXT[];
+  l_data_for_ab JSONB;
+BEGIN
+  SELECT 
+    ARRAY_AGG(common_identifier) INTO l_ab_common_identifiers 
+  FROM 
+    ab_data.sequences_to_information
+  WHERE
+    amino_acid_sequence_id = l_sequence_hash_id;
+  SELECT
+    ROW_TO_JSON(sq) INTO l_data_for_ab
+  FROM
+    (
+	  SELECT
+		common_identifier,
+		antibody_type,
+		target_gene_name,
+		antibody_source,
+		created_by ab_created_by,
+		date_added ab_date_added,
+		last_modified_date ab_last_modified_date,
+		modified_by ab_modified_by
+	  FROM
+		ab_data.antibody_information
+	  WHERE
+		common_identifier IN
+		(
+			SELECT 
+			  UNNEST(l_ab_common_identifiers))
+	) sq;
+	
+	RETURN l_data_for_ab;
+	
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_seq_data_for_aa_seq(p_search_aa_seq TEXT)
+RETURNS JSONB
+AS
+$$
+DECLARE
+  l_search_aa_seq_hash_id TEXT := user_defined_crud_functions.get_sequence_hash_id(p_search_aa_seq);
+  l_amino_acid_sequence_data JSONB;
+BEGIN
+  SELECT
+    ROW_TO_JSON(sq)::JSONB INTO l_amino_acid_sequence_data
+  FROM
+    (SELECT
+	   'Sequence Found'::TEXT exact_match_result,
+	   amino_acid_sequence_id,
+       chain_type,
+       sequence_name,
+       created_by seq_created_by,
+       date_added seq_date_added,
+       last_modified_date seq_last_modified_date,
+       modified_by seq_modified_by
+     FROM
+       ab_data.amino_acid_sequences
+     WHERE
+       amino_acid_sequence_id = l_search_aa_seq_hash_id) sq;
+	   
+  RETURN COALESCE(l_amino_acid_sequence_data, '{"exact_match_result": "Sequence not found"}'::JSONB);
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_all_data_for_aa_seq(p_search_aa_seq TEXT)
+RETURNS TABLE(attribute_name TEXT, attribute_value TEXT)
+AS
+$$
+BEGIN
+RETURN QUERY
+  SELECT 
+    key attribute_name, 
+    value attribute_value 
+  FROM 
+    JSONB_EACH_TEXT(user_defined_crud_functions.get_seq_data_for_aa_seq(p_search_aa_seq))
+  UNION
+  SELECT 
+    key, 
+    value 
+  FROM 
+    JSONB_EACH_TEXT(user_defined_crud_functions.get_ab_data_for_aa_seq(p_search_aa_seq));
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_ab_common_identifier_for_given_name(p_given_name TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_given_name TEXT := UPPER(TRIM(p_given_name));
+  l_is_given_name_common_identifier BOOLEAN;
+  l_common_identifier TEXT;
+BEGIN
+  SELECT 
+    EXISTS(SELECT * FROM ab_data.antibody_information WHERE common_identifier = l_given_name) 
+    INTO l_is_given_name_common_identifier;
+  IF l_is_given_name_common_identifier THEN
+    RETURN l_given_name;
+  END IF;
+  SELECT
+    common_identifier INTO l_common_identifier
+  FROM
+    ab_data.antibody_names_lookup
+  WHERE
+    UPPER(alternative_name) = l_given_name;
+	
+  RETURN COALESCE(l_common_identifier, 'Not found');
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_ab_data_for_given_ab_name(p_given_name TEXT)
+RETURNS JSONB
+AS
+$$
+DECLARE
+  l_common_identifier TEXT := user_defined_crud_functions.get_ab_common_identifier_for_given_name(p_given_name);
+  l_ab_data_for_given_name JSONB;
+BEGIN
+  SELECT
+    ROW_TO_JSON(sq) INTO l_ab_data_for_given_name
+  FROM
+    (
+	  SELECT
+		common_identifier,
+		antibody_type,
+		target_gene_name,
+		antibody_source,
+		created_by ab_created_by,
+		date_added ab_date_added,
+		last_modified_date ab_last_modified_date,
+		modified_by ab_modified_by
+	  FROM
+		ab_data.antibody_information
+	  WHERE
+		common_identifier = l_common_identifier
+	) sq;
+	
+	RETURN l_ab_data_for_given_name;
+	
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA user_defined_crud_functions TO mabmindergroup;

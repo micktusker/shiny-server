@@ -162,3 +162,60 @@ SELECT create_function_comment_statement(
 );
 
 
+-- Documentation for functions to display output
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_ab_data_for_aa_seq',
+	ARRAY['TEXT'],
+	'Given an amino acid sequence, return all antibody information -if any- associated with that sequence as JSONB.',
+	$$SELECT user_defined_crud_functions.get_ab_data_for_aa_seq('EIVLTQSPATLSLSPGERATLSCRASQSVSSYLAWYQQKPGQAPRLLIYDASNRATGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQSSNWPRTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC');$$,
+	'This function will return information on an antibody from the |antibody_information| table if the antibody is assciated with ' ||
+	'the input sequence via an entry in the join table |sequences_to_information|. Because a sequence can be associated with more than one antibody, the function ' ||
+	'first gets an array of allantibody common identifiers associated with the sequence and then uses this array in the inner-most query to ensure that all associated ' ||
+	'antibody rows are returned. ' ||
+	'Although this function can be called directly, it is meant to be called by function |get_seq_data_for_aa_seq| which combines antibody and sequence information ' ||
+	'into one output table.');
+
+
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_seq_data_for_aa_seq',
+	ARRAY['TEXT'],
+	'Given an amino acid sequence, return all information -if any- associated with that sequence as JSONB.',
+	$$SELECT user_defined_crud_functions.get_seq_data_for_aa_seq('EIVLTQSPATLSLSPGERATLSCRASQSVSSYLAWYQQKPGQAPRLLIYDASNRATGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQSSNWPRTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC');$$,
+	'Columns are selected from the |amino_acid_sequences| table. If the MD5 calculated for the input amino acid sequence does not match a primary ' ||
+	'key in this table a JSONB with a single key is returned to indicate this (COALESCE call does this). '||
+	'Although this function can be called directly, it is meant to be called by function |get_seq_data_for_aa_seq| which combines antibody and sequence information ' ||
+	'into one output table.');
+
+
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_all_data_for_aa_seq',
+	ARRAY['TEXT'],
+	'Return a table containing a summary of sequence and antibody information available for a given amino acid sequence.',
+	$$SELECT * FROM user_defined_crud_functions.get_all_data_for_aa_seq('EIVLTQSPATLSLSPGERATLSCRASQSVSSYLAWYQQKPGQAPRLLIYDASNRATGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQSSNWPRTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC');$$,
+	'This function combines (UNION) the JSONB output from functions |get_ab_data_for_aa_seq| and |get_seq_data_for_aa_seq| into a single two-column output table. ' ||
+    'Client code can call this function to determine what information, if any, is stored in the database for the input sequence.');
+
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_ab_common_identifier_for_given_name',
+	ARRAY['TEXT'],
+	'Perform a case-insensitive search to return the |common_identifier| for a given antibody name or synonym or return NULL if it does not exist.',
+	$$SELECT user_defined_crud_functions.get_ab_common_identifier_for_given_name('nivolumab');$$,
+	'This function first does a case-insensitive search of the |common_identifier| primary key column of the table |antibody_information| and ' ||
+	'reurns the common identifier if it finds it. Otherwise it searches the table |antibody_names_lookup| and returns the a common identifier if the given ' ||
+	'name maps to a synonym in the column ||alternative_name|.'
+);
+
+
+
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_ab_data_for_given_ab_name',
+	ARRAY['TEXT'],
+	'Return data about the given antibody name as JSONB.',
+	$$SELECT * FROM user_defined_crud_functions.get_ab_data_for_given_ab_name('nivolumab');$$,
+	'This function returns selected data on the given antibody name as JSONB. It uses the function |get_ab_common_identifier_for_given_name| ' ||
+	'to resolve the given name to a common antibody identifier if possible to allow defined antibody synonyms to be used. ' ||
+	'Although it can be called independently, it is meant to be called by |get_all_ab_data_for_given_ab_name| which returns a table ' ||
+	'that combines general antibody with its associated sequences.'
+);
+
+
