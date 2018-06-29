@@ -218,4 +218,36 @@ SELECT create_function_comment_statement(
 	'that combines general antibody with its associated sequences.'
 );
 
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_seq_data_for_given_ab_name',
+	ARRAY['TEXT'],
+	'Return information for sequences about the given antibody name as an array of JSONB.',
+	$$SELECT * FROM user_defined_crud_functions.get_seq_data_for_given_ab_name('daratumumab');$$,
+	'This function returns information for sequences attached to the given antibody name as an array of JSONB. ' ||
+	'It uses the function |get_ab_common_identifier_for_given_name| ' ||
+	'to resolve the given name to a common antibody identifier if possible to allow defined antibody synonyms to be used. ' ||
+	'Although it can be called independently, it is meant to be called by |get_all_ab_data_for_given_ab_name| which returns a table ' ||
+	'that combines general antibody information with its associated sequences.'
+);
 
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_all_data_for_given_ab_name',
+	ARRAY['TEXT'],
+	'Returns a table of data for a given antibody name.',
+	$$SELECT * FROM user_defined_crud_functions.get_all_data_for_given_ab_name('daratumumab');$$,
+	'This function uses a UNION query to combine the output of two other functions |get_seq_data_for_given_ab_name| ' ||
+	' and |get_ab_data_for_given_ab_name|. The first clause in the UNION returns all the sequence data for that ' ||
+	'antibody and the second gets the antibody information. The first function returns an array of JSONBs, one for each sequence. ' ||
+	'Processing this output array proved trick and required two calls of the JSONB_TO_TEXT function to get the keys and values from its output record.'
+);
+
+
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.get_matched_sequences_for_subseq',
+	ARRAY['TEXT'],
+	'Return a table with details for all amino acid sequences in the database that contain the given amino acid sub-sequence.',
+	$$SELECT * FROM user_defined_crud_functions.get_matched_sequences_for_subseq('DIWGQGT');$$,
+	'The sub-sequence has to be composed of the standard single letter amino acid codes only. ' ||
+	'The sub-sequence argument is passed to function |get_cleaned_amino_acid_sequence| to ensure that ' ||
+	'only allowable amino acid letters are present and to ensure the sub-sequence used to search is upper-case with all white space removed.'
+);

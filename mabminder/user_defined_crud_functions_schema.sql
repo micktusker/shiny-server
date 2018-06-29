@@ -480,10 +480,10 @@ AS
 $$
 DECLARE
   l_search_aa_seq_hash_id TEXT := user_defined_crud_functions.get_sequence_hash_id(p_search_aa_seq);
-  l_amino_acid_sequence_data JSONB;
+  l_amino_acid_sequence_data JSONB[];
 BEGIN
   SELECT
-    ROW_TO_JSON(sq)::JSONB INTO l_amino_acid_sequence_data
+    ARRAY_AGG(ROW_TO_JSON(sq)::JSONB) INTO l_amino_acid_sequence_data
   FROM
     (SELECT
 	   'Sequence Found'::TEXT exact_match_result,
@@ -499,7 +499,7 @@ BEGIN
      WHERE
        amino_acid_sequence_id = l_search_aa_seq_hash_id) sq;
 	   
-  RETURN COALESCE(l_amino_acid_sequence_data, '{"exact_match_result": "Sequence not found"}'::JSONB);
+  RETURN COALESCE(l_amino_acid_sequence_data[1], '{"exact_match_result": "Sequence not found"}'::JSONB);
   
 END;
 $$
@@ -586,6 +586,100 @@ BEGIN
 	
 	RETURN l_ab_data_for_given_name;
 	
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_seq_data_for_given_ab_name(p_given_name TEXT)
+RETURNS JSONB[]
+AS
+$$
+DECLARE
+  l_ab_common_identifier TEXT := user_defined_crud_functions.get_ab_common_identifier_for_given_name(p_given_name);
+  l_amino_acid_sequence_ids TEXT[];
+  l_amino_acid_sequence_data JSONB[];
+BEGIN
+  SELECT
+    ARRAY_AGG(sti.amino_acid_sequence_id) INTO l_amino_acid_sequence_ids
+  FROM
+    ab_data.sequences_to_information sti
+  WHERE
+    sti.common_identifier = l_ab_common_identifier;
+  SELECT 
+    ARRAY_AGG(ROW_TO_JSON(sq)) INTO l_amino_acid_sequence_data
+  FROM
+    (SELECT
+	  aas.amino_acid_sequence_id,
+	  aas.amino_acid_sequence,
+      aas.chain_type,
+      aas.sequence_name,
+      aas.created_by seq_created_by,
+      aas.date_added seq_date_added,
+      aas.last_modified_date seq_last_modified_date,
+      aas.modified_by seq_modified_by
+    FROM
+      ab_data.amino_acid_sequences aas
+    WHERE
+      aas.amino_acid_sequence_id IN (
+	    SELECT
+		  UNNEST(l_amino_acid_sequence_ids)
+	   )
+  ) sq;
+  
+  RETURN l_amino_acid_sequence_data;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_all_data_for_given_ab_name(p_given_name TEXT)
+RETURNS TABLE(attribute_name TEXT, attribute_value TEXT)
+AS
+$$
+BEGIN
+RETURN QUERY
+  SELECT
+    (JSONB_EACH_TEXT(UNNEST(user_defined_crud_functions.get_seq_data_for_given_ab_name(p_given_name)))).key attribute_name,
+    (JSONB_EACH_TEXT(UNNEST(user_defined_crud_functions.get_seq_data_for_given_ab_name(p_given_name)))).value attribute_value
+  UNION
+  SELECT 
+    key, 
+    value 
+  FROM 
+    JSONB_EACH_TEXT(user_defined_crud_functions.get_ab_data_for_given_ab_name(p_given_name));
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_matched_sequences_for_subseq(p_subseq TEXT)
+RETURNS TABLE(sequence_name TEXT, chain_type TEXT, amino_acid_sequence TEXT, common_identifier TEXT, antibody_type TEXT)
+AS
+$$
+DECLARE
+  l_subseq TEXT := user_defined_crud_functions.get_cleaned_amino_acid_sequence(p_subseq);
+BEGIN
+  RETURN QUERY
+  SELECT
+    aas.sequence_name,
+    aas.chain_type,
+    aas.amino_acid_sequence,
+    ai.common_identifier,
+    ai.antibody_type
+  FROM
+    ab_data.amino_acid_sequences aas
+    LEFT OUTER JOIN
+      ab_data.sequences_to_information sti
+	  ON
+	    aas.amino_acid_sequence_id = sti.amino_acid_sequence_id
+    JOIN
+      ab_data.antibody_information ai
+	  ON
+	    sti.common_identifier = ai.common_identifier
+  WHERE
+    aas.amino_acid_sequence ~ l_subseq;
 END;
 $$
 LANGUAGE plpgsql
