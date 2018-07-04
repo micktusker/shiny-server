@@ -29,7 +29,7 @@ postgres=# GRANT CONNECT ON DATABASE mabminder TO mabmindergroup;
 CREATE TABLE ab_data.usernames(
   	username TEXT PRIMARY KEY
 );
-INSERT INTO ab_data.usernames(username) VALUES('michael.maguire@tusktherapeutics.com');
+INSERT INTO ab_data.usernames(username) VALUES('michael.maguire@tusktherapeutics.com'), ('Sabrina.Boussouf@tusktherapeutics.com');
 
 CREATE TABLE ab_data.antibody_sources(
   source_name TEXT PRIMARY KEY

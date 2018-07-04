@@ -686,6 +686,79 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 
 
+-- Functions written for Excel VBA client
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.load_excel_batch_row(p_rows_values TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_rows_values TEXT[] := STRING_TO_ARRAY(p_rows_values, E'\n');
+  l_single_row_values TEXT[];
+  l_common_identifier TEXT;
+  l_antibody_type TEXT;
+  l_target_gene_name TEXT;
+  l_antibody_source TEXT;
+  l_antibody_url TEXT;
+  l_antibody_note TEXT;
+  l_h_chain_sequence TEXT;
+  l_l_chain_sequence TEXT;
+  l_current_row TEXT;
+  l_load_result_hchain TEXT;
+  l_load_result_lchain TEXT;
+  l_load_result_abbnote TEXT;
+  l_load_result_row TEXT;
+  l_load_result_rows TEXT[];
+  l_index INTEGER := 1;
+BEGIN
+  FOREACH l_current_row IN ARRAY l_rows_values
+  LOOP
+    l_single_row_values := STRING_TO_ARRAY(l_current_row, E'\t');
+	l_common_identifier := UPPER(TRIM(l_single_row_values[1]));
+	l_antibody_type := TRIM(l_single_row_values[2]);
+	l_target_gene_name := TRIM(l_single_row_values[3]);
+    l_antibody_source := TRIM(l_single_row_values[4]);
+    l_antibody_url := TRIM(l_single_row_values[5]);
+    l_antibody_note := TRIM(l_single_row_values[6]);
+    l_h_chain_sequence := l_single_row_values[7];
+    l_l_chain_sequence := l_single_row_values[8];
+	SELECT 
+	  create_new_antibody_sequence_entry INTO l_load_result_hchain
+	FROM  
+	  user_defined_crud_functions.create_new_antibody_sequence_entry(l_common_identifier,
+																	l_antibody_type,
+																	l_target_gene_name,
+																	l_antibody_source,
+																	l_antibody_url,
+																	l_h_chain_sequence,
+																	'H'::TEXT);
+    SELECT 
+	  create_new_antibody_sequence_entry INTO l_load_result_lchain
+	FROM  
+	  user_defined_crud_functions.create_new_antibody_sequence_entry(l_common_identifier,
+																	l_antibody_type,
+																	l_target_gene_name,
+																	l_antibody_source,
+																	l_antibody_url,
+																	l_l_chain_sequence,
+																	'L'::TEXT);
+    IF LENGTH(l_antibody_note)	> 0 THEN															
+      SELECT
+	    add_note_to_antibody INTO l_load_result_abbnote
+      FROM
+	    user_defined_crud_functions.add_note_to_antibody(l_common_identifier, l_antibody_note);
+	END IF;
+    l_load_result_row := ARRAY_TO_STRING(ARRAY[l_load_result_hchain, l_load_result_lchain, l_load_result_abbnote], E'\t');
+	l_load_result_rows[l_index] := l_load_result_row;
+	l_index := l_index + 1;
+  END LOOP;
+
+  RETURN ARRAY_TO_STRING(l_load_result_rows, E'\n');
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA user_defined_crud_functions TO mabmindergroup;

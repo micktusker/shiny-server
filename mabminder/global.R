@@ -5,12 +5,11 @@ library(tools)
 # Links:
 # https://stackoverflow.com/questions/24265980/reset-inputs-button-in-shiny-app#24269691
 # 192.168.49.15
-# Note: This is using the package RPostgres and NOT RPostgreSQL!!
 getPgConnection <- function(userName, password) {
   pool <- dbPool(
-    drv = RPostgres::Postgres(),
+    drv = RPostgreSQL::PostgreSQL(),
     dbname = "mabminder",
-    host = "localhost",
+    host = "127.0.0.1",
     user = userName,
     port = 5432,
     password = password

@@ -251,3 +251,17 @@ SELECT create_function_comment_statement(
 	'The sub-sequence argument is passed to function |get_cleaned_amino_acid_sequence| to ensure that ' ||
 	'only allowable amino acid letters are present and to ensure the sub-sequence used to search is upper-case with all white space removed.'
 );
+
+SELECT create_function_comment_statement(
+	'user_defined_crud_functions.load_excel_batch_row',
+	ARRAY['TEXT'],
+	'Loads a batch of antibodies information and sequences from Excel into the database and returns a string summary of the load operation.',
+	$$SELECT 'To be called from Excel VBA.');$$,
+	'This function was written to be used with the Excel VBA client to perform bulk loads of data from spreadsheets.' ||
+	'It receives the data to upload as a string concatenation of the input Excel rows. ' ||
+	'Each row is separated by a new line CHAR(10) and the individual cell values within each row are tab-delimited. ' ||
+	'This input is split into rows and each row is then processed in the FOREACH loop by splitting the row on tabs. ' ||
+	'The extracted values are then processed by other functions that insert into relevant tables. The output from these ' ||
+	'functions is then concatenated and returned as string to Excel VBA client where it is processed to present a load report.'
+);
+
