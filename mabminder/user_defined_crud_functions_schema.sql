@@ -759,6 +759,169 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_joined_quoted_array_text_elements(p_text_array TEXT[])
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_single_quoted_array TEXT[];
+  l_input_array_element TEXT;
+  l_index INTEGER := 1;
+BEGIN
+  FOREACH l_input_array_element IN ARRAY p_text_array
+  LOOP
+	l_single_quoted_array[l_index] := CONCAT($q$'$q$, l_input_array_element, $q$'$q$);
+	l_index := l_index + 1;
+  END LOOP;
+  
+  RETURN(ARRAY_TO_STRING(l_single_quoted_array, ','));
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.create_query_template(p_common_identifiers TEXT[],
+																			p_antibody_types TEXT[],
+																			p_target_gene_names TEXT[],
+																			p_antibody_sources TEXT[])
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_tmpl_sql TEXT;
+BEGIN
+  SELECT INTO l_tmpl_sql
+    $TMPL$
+	SELECT *
+    FROM
+      ab_data.vw_antibodies_information_and_sequence
+    WHERE
+      common_identifier IN(|COMMON_IDENTIFIERS|)
+      AND
+        antibody_type IN(|ANTIBODY_TYPES|)
+      AND
+        target_gene_name IN(|TARGET_GENE_NAMES|)
+      AND
+        antibody_source IN(|ANTIBODY_SOURCES|)
+	$TMPL$;
+  IF p_common_identifiers[1] = '' AND ARRAY_LENGTH(p_common_identifiers, 1) = 1 THEN
+    l_tmpl_sql := REGEXP_REPLACE(l_tmpl_sql, 'common_identifier IN\(\|COMMON_IDENTIFIERS\|\)\s+AND', '');
+  END IF;
+  IF p_antibody_types[1] = '' AND ARRAY_LENGTH(p_antibody_types, 1) = 1 THEN
+    l_tmpl_sql := REGEXP_REPLACE(l_tmpl_sql, 'AND\s+antibody_type IN\(\|ANTIBODY_TYPES\|\)', '');
+  END IF;
+  IF p_target_gene_names[1] = '' AND ARRAY_LENGTH(p_target_gene_names, 1) = 1 THEN
+    l_tmpl_sql := REGEXP_REPLACE(l_tmpl_sql, 'AND\s+target_gene_name IN\(\|TARGET_GENE_NAMES\|\)', '');
+  END IF;
+  IF p_antibody_sources[1] = '' AND ARRAY_LENGTH(p_antibody_sources, 1) = 1 THEN
+    l_tmpl_sql := REGEXP_REPLACE(l_tmpl_sql, 'AND\s+antibody_source IN\(\|ANTIBODY_SOURCES\|\)', '');
+  END IF;
+  l_tmpl_sql := REPLACE( l_tmpl_sql, '|COMMON_IDENTIFIERS|', user_defined_crud_functions.get_joined_quoted_array_text_elements(p_common_identifiers));
+  l_tmpl_sql := REPLACE( l_tmpl_sql, '|ANTIBODY_TYPES|', user_defined_crud_functions.get_joined_quoted_array_text_elements(p_antibody_types));
+  l_tmpl_sql := REPLACE( l_tmpl_sql, '|TARGET_GENE_NAMES|', user_defined_crud_functions.get_joined_quoted_array_text_elements(p_target_gene_names));
+  l_tmpl_sql := REPLACE( l_tmpl_sql, '|ANTIBODY_SOURCES|', user_defined_crud_functions.get_joined_quoted_array_text_elements(p_antibody_sources));
+  RETURN TRIM(l_tmpl_sql);
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT user_defined_crud_functions.create_query_template(ARRAY[''], ARRAY['Human IgG1'], ARRAY[''], ARRAY['Tusk']);
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_table_for_params(p_common_identifiers TEXT[],
+																			p_antibody_types TEXT[],
+																			p_target_gene_names TEXT[],
+																			p_antibody_sources TEXT[])
+RETURNS TABLE(common_identifier TEXT, 
+			  antibody_type TEXT, 
+			  target_gene_name TEXT, 
+			  h_chain_sequence TEXT, 
+			  l_chain_sequence TEXT, 
+			  antibody_url TEXT,
+			  antibody_source TEXT)
+AS
+$$
+DECLARE
+  l_generated_sql TEXT := user_defined_crud_functions.create_query_template(p_common_identifiers, p_antibody_types, p_target_gene_names, p_antibody_sources);
+BEGIN
+  RETURN QUERY EXECUTE l_generated_sql;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_table_for_params(ARRAY[''], ARRAY['Human IgG1'], ARRAY[''], ARRAY['Tusk']);	
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_filter_values()
+RETURNS TABLE(filter_values TEXT)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    ARRAY_TO_STRING(ARRAY[COALESCE(common_identifier, ''), COALESCE(antibody_type, ''), COALESCE(target_gene_name, ''), COALESCE(antibody_source, '')], E'\t')
+  FROM
+    ab_data.vw_antibodies_information_and_sequence;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT get_filter_values FROM user_defined_crud_functions.get_filter_values();
+SELECT ARRAY_TO_STRING(ARRAY['cat', COALESCE(NULL, ''), 'sat'], '|')    
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.generate_sql_aggregates_map_for_two_columns(p_column_key_name TEXT, p_aggregates_column_name TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE 
+  l_sql_tmpl TEXT;
+BEGIN
+  l_sql_tmpl := 
+  $TMPL$
+  SELECT
+    COLUMN_KEY_NAME column_key,
+    ARRAY_TO_STRING(ARRAY_AGG(agg_value), E'\t') aggregated_values
+  FROM
+    (SELECT DISTINCT
+       COLUMN_KEY_NAME,
+       UNNEST(agg_values) agg_value
+     FROM
+       (SELECT      
+          COLUMN_KEY_NAME,
+          ARRAY_AGG(AGGREGATE_COLUMN_NAME) agg_values
+        FROM
+          ab_data.vw_antibodies_information_and_sequence
+        GROUP BY
+	      COLUMN_KEY_NAME) sqi) sqo
+  GROUP BY
+    COLUMN_KEY_NAME
+  $TMPL$;
+  l_sql_tmpl := REPLACE(l_sql_tmpl, 'COLUMN_KEY_NAME', p_column_key_name);
+  l_sql_tmpl := REPLACE(l_sql_tmpl, 'AGGREGATE_COLUMN_NAME', p_aggregates_column_name);
+  
+  RETURN l_sql_tmpl;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.generate_sql_aggregates_map_for_two_columns('antibody_type', 'common_identifier');
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_aggregates_map_for_two_columns(p_column_key_name TEXT, p_aggregates_column_name TEXT)
+RETURNS TABLE(column_key TEXT, aggregated_values TEXT)
+AS
+$$
+DECLARE 
+  l_generated_sql TEXT := user_defined_crud_functions.generate_sql_aggregates_map_for_two_columns(p_column_key_name, p_aggregates_column_name);
+BEGIN
+  RETURN QUERY EXECUTE l_generated_sql;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_aggregates_map_for_two_columns('common_identifier', 'h_chain_sequence');
+
+
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA user_defined_crud_functions TO mabmindergroup;

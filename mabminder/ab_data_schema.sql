@@ -301,8 +301,14 @@ WHERE
     ab_data.sequences_to_information sti);
 
 
-
-
+-- Germline Gene tables
+CREATE TABLE ab_data.germline_genes(
+	hgnc_id TEXT PRIMARY KEY, 
+	gene_symbol TEXT, 
+	gene_name TEXT, 
+	ensembl_gene_id TEXT, 
+	uniprot_id TEXT, 
+	imgt_gene_name TEXT);
 
 
 -- Reset permissions on re-created schema and its objects
