@@ -310,6 +310,12 @@ CREATE TABLE ab_data.germline_genes(
 	uniprot_id TEXT, 
 	imgt_gene_name TEXT);
 
+CREATE TABLE ab_data.germline_gene_aa_sequences(
+    amino_acid_hashed_id TEXT,
+	amino_acid_sequence_ensembl TEXT,
+	ensembl_gene_id TEXT PRIMARY KEY,
+	err_msg TEXT
+);
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA ab_data TO mabmindergroup;
