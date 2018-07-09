@@ -921,6 +921,68 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT * FROM user_defined_crud_functions.get_aggregates_map_for_two_columns('common_identifier', 'h_chain_sequence');
 
+CREATE OR REPLACE FUNCTION ab_data.get_excel_ab_info_for_aa_sequence(p_aa_seq TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_amino_acid_sequence_id TEXT;
+  l_info_for_aa_seq TEXT;
+BEGIN
+  l_amino_acid_sequence_id := user_defined_crud_functions.get_sequence_hash_id(p_aa_seq);
+  SELECT
+    ARRAY_TO_STRING(ARRAY[ai.common_identifier,
+                          ai.antibody_type,
+                          aas.sequence_name,
+                          aas.amino_acid_sequence], E'\t') INTO l_info_for_aa_seq
+  FROM
+    ab_data.amino_acid_sequences  aas
+    LEFT OUTER JOIN
+      ab_data.sequences_to_information sti
+	  ON
+	    aas.amino_acid_sequence_id = sti.amino_acid_sequence_id
+    JOIN
+      ab_data.antibody_information ai
+	    ON
+	      sti.common_identifier = ai.common_identifier
+  WHERE
+    aas.amino_acid_sequence_id = l_amino_acid_sequence_id;
+	
+	RETURN COALESCE(l_info_for_aa_seq, 'NOT FOUND');
+
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+-- Note, if a sequence maps to >1 ab (e.g. Abs sharing the same H or L chain), the first result is returned
+-- may need to re-visit this!.
+SELECT ab_data.get_excel_ab_info_for_aa_sequence('EIVLTQSPGTLSLSPGERATLSCRASQRVSSSYLAWYQQKPGQAPRLLIYDASSRATGIPDRFSGSGSGTDFTLTISRLEPEDFAVYYCQQYGSLPWTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC');
+
+CREATE OR REPLACE FUNCTION ab_data.get_excel_ab_info_for_aa_sequences(p_aa_seqs TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_aa_sequences TEXT[] := STRING_TO_ARRAY(p_aa_seqs, E'\n');
+  l_aa_sequence TEXT;
+  l_ab_info_for_aa_sequences TEXT[];
+  l_ab_info_for_aa_sequence TEXT;
+  l_index INTEGER := 1;
+BEGIN
+  FOREACH l_aa_sequence IN ARRAY l_aa_sequences
+  LOOP
+    l_ab_info_for_aa_sequence := ab_data.get_excel_ab_info_for_aa_sequence(l_aa_sequence);
+	l_ab_info_for_aa_sequences[l_index] := l_ab_info_for_aa_sequence;
+	l_index := l_index + 1;
+  END LOOP;
+  
+  RETURN ARRAY_TO_STRING(l_ab_info_for_aa_sequences, E'\n');
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT ab_data.get_excel_ab_info_for_aa_sequences(ARRAY_TO_STRING(ARRAY['PQVIT', 'RRVTT', 'EVST'], E'\n'));
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
