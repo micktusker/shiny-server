@@ -933,8 +933,7 @@ BEGIN
   SELECT
     ARRAY_TO_STRING(ARRAY[ai.common_identifier,
                           ai.antibody_type,
-                          aas.sequence_name,
-                          aas.amino_acid_sequence], E'\t') INTO l_info_for_aa_seq
+                          aas.sequence_name], E'\t') INTO l_info_for_aa_seq
   FROM
     ab_data.amino_acid_sequences  aas
     LEFT OUTER JOIN
@@ -954,6 +953,7 @@ END;
 $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
+
 -- Note, if a sequence maps to >1 ab (e.g. Abs sharing the same H or L chain), the first result is returned
 -- may need to re-visit this!.
 SELECT ab_data.get_excel_ab_info_for_aa_sequence('EIVLTQSPGTLSLSPGERATLSCRASQRVSSSYLAWYQQKPGQAPRLLIYDASSRATGIPDRFSGSGSGTDFTLTISRLEPEDFAVYYCQQYGSLPWTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC');
@@ -983,6 +983,59 @@ $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT ab_data.get_excel_ab_info_for_aa_sequences(ARRAY_TO_STRING(ARRAY['PQVIT', 'RRVTT', 'EVST'], E'\n'));
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_excel_ab_info_for_ab_id(p_ab_id TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_ab_row_info TEXT;
+BEGIN
+  SELECT
+    ARRAY_TO_STRING(ARRAY[common_identifier, antibody_type, 
+						  target_gene_name, h_chain_sequence, 
+						  l_chain_sequence, antibody_url, 
+						  antibody_source], E'\t') INTO l_ab_row_info
+  FROM
+    ab_data.vw_antibodies_information_and_sequence
+  WHERE
+    common_identifier = (SELECT user_defined_crud_functions.get_ab_common_identifier_for_given_name(p_ab_id));
+
+  RETURN COALESCE(l_ab_row_info, 'NOT FOUND');			 
+
+END;  
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_excel_ab_info_for_ab_id('ADI-36084');
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_excel_ab_info_for_ab_ids(p_ab_ids TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_ab_ids TEXT[] := STRING_TO_ARRAY(p_ab_ids, E'\n');
+  l_ab_info TEXT;
+  l_ab_info_set TEXT[];
+  l_ab_id TEXT;
+  l_index INTEGER := 1;
+BEGIN
+  FOREACH l_ab_id IN ARRAY l_ab_ids
+  LOOP
+    l_ab_info := user_defined_crud_functions.get_excel_ab_info_for_ab_id(l_ab_id);
+	l_ab_info_set[l_index] := l_ab_info;
+	l_index := l_index + 1;
+  END LOOP;
+  
+  RETURN ARRAY_TO_STRING(l_ab_info_set, E'\n');
+  
+END;  
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_excel_ab_info_for_ab_ids(ARRAY_TO_STRING(ARRAY['nivolumab', 'daratumumab', 'imaginumab'], E'\n'));
+
+
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
