@@ -1035,6 +1035,58 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT * FROM user_defined_crud_functions.get_excel_ab_info_for_ab_ids(ARRAY_TO_STRING(ARRAY['nivolumab', 'daratumumab', 'imaginumab'], E'\n'));
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_ab_note_ids_for_common_identifier(p_common_identifier TEXT)
+RETURNS TABLE(antibody_note_id INTEGER)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    an.antibody_note_id
+  FROM
+    ab_data.antibody_notes an
+    JOIN
+    ab_data.antibody_notes_to_information an2i
+      ON
+	  an.antibody_note_id = an2i.antibody_note_id
+  WHERE
+    an2i.common_identifier = p_common_identifier
+  ORDER BY
+    1;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_ab_note_ids_for_common_identifier('DARATUMUMAB');
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_excel_ab_note_for_note_id(p_ab_note_id INTEGER)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_ab_note_details TEXT;
+BEGIN
+  SELECT
+    ARRAY_TO_STRING(
+		ARRAY['Note Text:',
+	           note_text,
+	           'Created By',
+	           created_by,
+	          'Date Added:',
+	           CAST(date_added AS TEXT)],
+		E'\t') INTO l_ab_note_details
+  FROM
+    ab_data.antibody_notes
+  WHERE
+    antibody_note_id = p_ab_note_id;
+  
+  RETURN l_ab_note_details;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_excel_ab_note_for_note_id(87);
 
 
 -- Reset permissions on re-created schema and its objects
