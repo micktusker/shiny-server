@@ -300,6 +300,23 @@ WHERE
   FROM
     ab_data.sequences_to_information sti);
 
+-- Used do populate client lists for parent-progeny definition
+CREATE OR REPLACE VIEW ab_data.vw_seqname_chaintype_targetgene AS
+SELECT 
+  aas.sequence_name,
+  aas.chain_type,
+  ai.target_gene_name
+FROM
+ ab_data.amino_acid_sequences aas
+ JOIN
+   ab_data.sequences_to_information sti
+   ON
+     aas.amino_acid_sequence_id = sti.amino_acid_sequence_id
+  JOIN
+    ab_data.antibody_information ai
+	ON
+	  sti.common_identifier = ai.common_identifier;
+	  
 
 -- Germline Gene tables
 CREATE TABLE ab_data.germline_genes(

@@ -1088,6 +1088,44 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT * FROM user_defined_crud_functions.get_excel_ab_note_for_note_id(87);
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_excel_sequence_names(p_chain_type TEXT)
+RETURNS TABLE(sequence_name TEXT)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    vw.sequence_name
+  FROM
+    ab_data.vw_seqname_chaintype_targetgene vw
+  WHERE
+    vw.chain_type = p_chain_type;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_excel_sequence_names('H');
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_excel_sequence_names(p_chain_type TEXT, p_target_gene_name TEXT)
+RETURNS TABLE(sequence_name TEXT)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT
+    vw.sequence_name
+  FROM
+    ab_data.vw_seqname_chaintype_targetgene vw
+  WHERE
+    vw.chain_type = p_chain_type
+  AND
+    vw.target_gene_name = p_target_gene_name;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.get_excel_sequence_names('H', 'CD38');
+
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
