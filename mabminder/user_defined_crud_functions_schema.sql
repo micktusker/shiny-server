@@ -1126,6 +1126,72 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT * FROM user_defined_crud_functions.get_excel_sequence_names('H', 'CD38');
 
+-- This version is not called directly by the Excel client. It creates rows in table |ab_data.progeny_amino_acid_sequences|.
+-- Its arguments are a parent sequence name and an array of progeny sequence names.
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.load_parent_progeny(p_parent_seq_name TEXT, 
+																		   p_progeny_seq_names TEXT[])
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_parent_sequence_id TEXT;
+  l_progeny_sequence_ids TEXT[];
+  l_progeny_sequence_id TEXT;
+  l_retval TEXT;
+  l_counter INTEGER := 0;
+BEGIN
+  SELECT
+    amino_acid_sequence_id INTO l_parent_sequence_id
+  FROM
+    ab_data.amino_acid_sequences
+  WHERE
+    sequence_name = p_parent_seq_name;
+  SELECT
+    ARRAY_AGG(amino_acid_sequence_id) INTO l_progeny_sequence_ids
+  FROM
+    ab_data.amino_acid_sequences
+  WHERE
+    sequence_name IN
+	(SELECT UNNEST(p_progeny_seq_names));  
+  FOREACH l_progeny_sequence_id IN ARRAY l_progeny_sequence_ids
+  LOOP
+    BEGIN
+	  INSERT INTO ab_data.progeny_amino_acid_sequences(amino_acid_progeny_sequence_id, amino_acid_parent_sequence_id)
+	    VALUES(l_progeny_sequence_id, l_parent_sequence_id);
+		INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(FORMAT('Parent "%s" to progeny "%s" created.', l_parent_sequence_id, l_parent_sequence_id));
+	  l_counter := l_counter + 1;
+	EXCEPTION
+	  WHEN unique_violation THEN
+	    INSERT INTO audit_logs.data_load_logs(load_outcome) VALUES(FORMAT('ERROR: %s exists already.', l_progeny_sequence_id));
+	END;
+  END LOOP;
+  
+  RETURN FORMAT('Number of parent-progeny relationships created is %s.', l_counter);
+
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+-- Excel version calls |user_defined_crud_functions.load_parent_progen|
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.load_excel_parent_progeny(p_parent_seq_name TEXT, 
+																				 p_tabdelim_progeny_seq_names TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_progeny_sequence_names TEXT[] := STRING_TO_ARRAY(p_tabdelim_progeny_seq_names, E'\t');
+  l_loader_retval TEXT;
+BEGIN
+  l_loader_retval := user_defined_crud_functions.load_parent_progeny(p_parent_seq_name, l_progeny_sequence_names);
+  
+  RETURN l_loader_retval;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT * FROM user_defined_crud_functions.load_excel_parent_progeny('TSK031044_H', 'TSK031044m1_H	TSK031044m2_H	TSK031044m3_H	TSK031044m4_H	TSK031044m5_H');
+
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;
