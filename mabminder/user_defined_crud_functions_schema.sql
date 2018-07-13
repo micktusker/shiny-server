@@ -1192,6 +1192,25 @@ LANGUAGE plpgsql
 SECURITY INVOKER;
 SELECT * FROM user_defined_crud_functions.load_excel_parent_progeny('TSK031044_H', 'TSK031044m1_H	TSK031044m2_H	TSK031044m3_H	TSK031044m4_H	TSK031044m5_H');
 
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_excel_parent_progeny()
+RETURNS TABLE(parent_sequence_name TEXT, progeny_sequence_names TEXT)
+AS
+$$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    vw.parent_sequence_name, 
+	ARRAY_TO_STRING(ARRAY_AGG(vw.progeny_sequence_name), E'\t')
+  FROM 
+    ab_data.vw_parent_progeny_seq_names vw
+  GROUP BY
+    vw.parent_sequence_name;
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+--To be used by Excel client to build a dictionary of arrays(keys = parent sequence name, array = progeny sequence names).
+SELECT * FROM user_defined_crud_functions.get_excel_parent_progeny();
 
 -- Reset permissions on re-created schema and its objects
 GRANT USAGE ON SCHEMA user_defined_crud_functions TO mabmindergroup;

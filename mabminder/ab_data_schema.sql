@@ -317,6 +317,25 @@ FROM
 	ON
 	  sti.common_identifier = ai.common_identifier;
 	  
+CREATE OR REPLACE VIEW ab_data.vw_parent_progeny_seq_names AS
+SELECT
+  sq.parent_sequence_name,
+  aas_outer.sequence_name progeny_sequence_name
+FROM
+  (SELECT
+     aas.sequence_name parent_sequence_name,
+     paas.amino_acid_progeny_sequence_id progeny_seq_id
+   FROM
+     ab_data.progeny_amino_acid_sequences paas
+     JOIN
+       ab_data.amino_acid_sequences aas
+	   ON
+	     paas.amino_acid_parent_sequence_id = aas.amino_acid_sequence_id) sq
+  JOIN
+    ab_data.amino_acid_sequences aas_outer
+	ON
+	  sq.progeny_seq_id = aas_outer.amino_acid_sequence_id;
+COMMENT ON VIEW ab_data.vw_parent_progeny_seq_names IS 'Convenience view that maps parent sequence names to their progeny names.';  
 
 -- Germline Gene tables
 CREATE TABLE ab_data.germline_genes(
