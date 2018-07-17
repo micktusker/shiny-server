@@ -128,6 +128,39 @@ SELECT create_function_comment_statement('get_function_details_for_schema',
                                            'The function OID is a unique identifier that is especially useful for identifying overloaded functions.' ||
                                            'It can be used as an argument to system catalog information functions such as *pg_get_functiondef(func_oid)*.');
 
+CREATE OR REPLACE FUNCTION public.change_user_password(p_new_password TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_user_name TEXT :=  CURRENT_USER;
+  l_template TEXT := $ACL$ALTER USER %I WITH PASSWORD %L$ACL$;
+  l_retval TEXT;
+BEGIN
+  l_template := FORMAT(l_template, l_user_name, p_new_password);
+  EXECUTE l_template;
+  l_retval := FORMAT('Password changed for user %I.', l_user_name);
+  
+  RETURN l_retval;
+  
+EXCEPTION
+  WHEN OTHERS THEN
+  l_retval := FORMAT('ERROR in password change for user %I: "%s"', l_user_name, SQLERRM);
+  
+  RETURN l_retval;
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT create_function_comment_statement('public.change_user_password',
+                                         ARRAY['TEXT'],
+                                         'Enables the user to set their own password given as an argument and returns a message indicating operation success or failure.',
+                                         $$SELECT public.change_user_password('changeme');$$,
+										 'The user can only change their own password. ' || 
+										 'The function uses CURRENT_USER to determine what account the change applies to.');
+
+
 -- VIEWS
 CREATE OR REPLACE VIEW vw_user_defined_crud_functions AS                                        
 SELECT
