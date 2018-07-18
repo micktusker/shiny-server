@@ -41,13 +41,17 @@ CREATE TABLE ab_data.antibody_types(
 );
 INSERT INTO ab_data.antibody_types(antibody_type) VALUES('mIgG2a'), ('BiTEs'), ('Chimeric human-murine IgG1'), ('Chimeric IgG1'), ('Chimeric IgG1κ'), ('Chimeric (mouse/human) IgG1/κ'), ('Human FaB'), ('Human IgG1'), ('Human IgG1/κ'), ('Human IgG2'), ('Human IgG2/κ'), ('Human IgG4'), ('Humanized IgG1'), ('Murine IgG2a');
 
+CREATE TABLE ab_data.species(
+  species_name TEXT PRIMARY KEY
+);
+INSERT INTO ab_data.species(species_name) VALUES('Human'), ('Mouse'), ('Rat'), ('Chimeric'), ('Humanized');
 
 -- data tables
 CREATE TABLE ab_data.amino_acid_sequences(
   amino_acid_sequence_id TEXT PRIMARY KEY,
   amino_acid_sequence TEXT NOT NULL,
   chain_type TEXT,
-  sequence_name TEXT NOT NULL,
+  sequence_name TEXT UNIQUE NOT NULL,
   created_by TEXT NOT NULL DEFAULT CURRENT_USER REFERENCES ab_data.usernames(username),
   date_added TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_modified_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -65,6 +69,7 @@ CREATE TABLE ab_data.progeny_amino_acid_sequences(
 
 CREATE TABLE ab_data.antibody_information(
   common_identifier TEXT PRIMARY KEY,
+  species_name TEXT NOT NULL REFERENCES ab_data.species_name,
   antibody_type TEXT NOT NULL REFERENCES ab_data.antibody_types(antibody_type),
   target_gene_name TEXT,
   antibody_source TEXT REFERENCES ab_data.antibody_sources(source_name),

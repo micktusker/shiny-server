@@ -44,20 +44,20 @@ SECURITY DEFINER;
 
 -- Loading antibodies 
 -- TO BE FIXED!!
--- test this function on Wed 13th June
 CREATE OR REPLACE FUNCTION user_defined_crud_functions.load_antibody_information(p_common_identifier TEXT,
 																		         p_antibody_type TEXT,
 																		         p_target_gene_name TEXT,
 													   					       p_antibody_source TEXT,
-													   					       p_antibody_url TEXT)
+													   					       p_antibody_url TEXT,
+																				p_species_name TEXT)
 RETURNS BOOLEAN
 AS
 $$
 DECLARE
  l_new_record_created BOOLEAN;
 BEGIN
-  INSERT INTO ab_data.antibody_information(common_identifier, target_gene_name, antibody_type, antibody_source, antibody_url)
-    VALUES(p_common_identifier, p_target_gene_name, p_antibody_type, p_antibody_source, p_antibody_url);
+  INSERT INTO ab_data.antibody_information(common_identifier, target_gene_name, antibody_type, antibody_source, antibody_url, species_name)
+    VALUES(p_common_identifier, p_target_gene_name, p_antibody_type, p_antibody_source, p_antibody_url, p_species_name);
   l_new_record_created := TRUE;
   
   RETURN l_new_record_created;
@@ -107,7 +107,9 @@ CREATE OR REPLACE FUNCTION user_defined_crud_functions.create_new_antibody_seque
 													                                      p_antibody_source TEXT,
 													                                      p_source_database_url TEXT,
 																		                  p_antibody_sequence TEXT,
-																		                  p_chain_type TEXT)
+																		                  p_chain_type TEXT,
+																						  p_sequence_name TEXT,
+																						  p_species_name TEXT)
 RETURNS TEXT
 AS
 $$
@@ -118,9 +120,9 @@ DECLARE
   l_retval TEXT := 'Successful upload of record for antibody identifier "%s" and antibody sequence hash ID "%s". New information row created: "%s". New sequence row created: "%s"';
   l_new_information_record_created BOOLEAN;
   l_new_sequence_record_created BOOLEAN;
-  l_sequence_name TEXT := CONCAT(l_common_identifier, '_', p_chain_type);
+  l_sequence_name TEXT := TRIM(UPPER(p_sequence_name));
 BEGIN
-  l_new_information_record_created := user_defined_crud_functions.load_antibody_information(l_common_identifier, p_antibody_type, p_gene_name, p_antibody_source, p_source_database_url);
+  l_new_information_record_created := user_defined_crud_functions.load_antibody_information(l_common_identifier, p_antibody_type, p_gene_name, p_antibody_source, p_source_database_url, p_species_name);
   l_new_sequence_record_created := user_defined_crud_functions.load_amino_acid_sequence(l_antibody_sequence_hash_id, l_antibody_sequence, p_chain_type, l_sequence_name);
   INSERT INTO ab_data.sequences_to_information(common_identifier, amino_acid_sequence_id)
     VALUES(l_common_identifier, l_antibody_sequence_hash_id);
@@ -146,6 +148,7 @@ END;
 $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
+
 
 CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_aa_seq_ids_for_ab_name(p_common_identifier TEXT)
 RETURNS TABLE(amino_acid_sequence_id TEXT)
@@ -684,6 +687,27 @@ END;
 $$
 LANGUAGE plpgsql
 SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION user_defined_crud_functions.get_aa_sequence_for_sequence_name(p_sequence_name TEXT)
+RETURNS TEXT
+AS
+$$
+DECLARE
+  l_aa_sequence TEXT;
+BEGIN
+  SELECT
+    amino_acid_sequence INTO l_aa_sequence
+  FROM
+    ab_data.amino_acid_sequences;
+	
+  RETURN COALESCE(l_aa_sequence, 'NO SEQUENCE FOUND');
+  
+END;
+$$
+LANGUAGE plpgsql
+SECURITY INVOKER;
+SELECT user_defined_crud_functions.get_aa_sequence_for_sequence_name('TSK031015_L');
+
 
 
 -- Functions written for Excel VBA client

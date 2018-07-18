@@ -13,13 +13,14 @@ SELECT create_function_comment_statement(
 	
 SELECT create_function_comment_statement(
 	'user_defined_crud_functions.create_new_antibody_sequence_entry',
-	ARRAY['TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT'],
+	ARRAY['TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT'],
 	'Create an antibody-sequence combination in the database.',
-	$$SELECT create_new_antibody_sequence_entry FROM  user_defined_crud_functions.create_new_antibody_sequence_entry('daratumumab', 'Human IgG1/κ', 'CD38', 'Commercial therapeutic', 'https://www.kegg.jp/entry/D10777', 'EIVLTQSPAT LSLSPGERAT LSCRASQSVS SYLAWYQQKP GQAPRLLIYD ASNRATGIPARFSGSGSGTD FTLTISSLEP EDFAVYYCQQ RSNWPPTFGQ GTKVEIKRTV AAPSVFIFPPSDEQLKSGTA SVVCLLNNFY PREAKVQWKV DNALQSGNSQ ESVTEQDSKD STYSLSSTLTLSKADYEKHK VYACEVTHQG LSSPVTKSFN RGEC', 'L');$$,
-	'This is a high-level and big function that the client can call to create a new antibody record in the datatabase '  ||
+	$$SELECT create_new_antibody_sequence_entry FROM  user_defined_crud_functions.create_new_antibody_sequence_entry('daratumumab', 'Human IgG1/κ', 'CD38', 'Commercial therapeutic', 'https://www.kegg.jp/entry/D10777', 'EIVLTQSPAT LSLSPGERAT LSCRASQSVS SYLAWYQQKP GQAPRLLIYD ASNRATGIPARFSGSGSGTD FTLTISSLEP EDFAVYYCQQ RSNWPPTFGQ GTKVEIKRTV AAPSVFIFPPSDEQLKSGTA SVVCLLNNFY PREAKVQWKV DNALQSGNSQ ESVTEQDSKD STYSLSSTLTLSKADYEKHK VYACEVTHQG LSSPVTKSFN RGEC', 'L', 'daratumumab_l', 'Human');$$,
+    'This is a high-level and big function that the client can call to create a new antibody record in the datatabase '  ||
 	'that associates the antibody information with the given sequence. It can only be called by a user defined in the usernames table (not an admin). '
 	'Its arguments are (1) the antibody name, (2) the isotype, (3) the gene target name (can be null), (4) where the antibody is from (commercial, in-house, etc ' ||
-	'(5) the URL where the general information and sequence is taken from, (6) the antibody amino acid sequence and and (7) the chain type (H or L). ' ||
+	'(5) the URL where the general information and sequence is taken from, (6) the antibody amino acid sequence, (7) the chain type (H or L). ' ||
+	'(8) sequence name and (9) the species name. ' ||
 	'The casing is normalised to upper and white space is removed from both the amino acid sequence and the antibody name so that, for example, daratumumab and Daratumumab are treated as the same identifier and are both stored as DARATUMUMAB. ' ||
 	'This function delegates the insertion of the antibody information and antibody sequences to |load_antibody_information| and |load_amino_acid_sequence|, respectively. ' ||
 	'It has been designed to ignore replicate entries in either the information or amino acid sequence table but it does report them and writes the report to |data_load_logs|. ' ||
@@ -29,6 +30,7 @@ SELECT create_function_comment_statement(
 	'join table each have have a row inserted. When the light chain is then loaded with the same antibody identifer, only the |amino_acid_sequences| and the |sequences_to_information| tables have new rows added to them. ' ||
 	'When this function is called, there should always be a resulting entry in the |data_load_logs| table and errors are prominently displayed with a message beginning with |ERROR|.'
 );
+
 
 SELECT create_function_comment_statement(
 	'user_defined_crud_functions.get_aa_seq_ids_for_ab_name',
@@ -91,12 +93,12 @@ SELECT create_function_comment_statement(
 
 SELECT create_function_comment_statement(
 	'user_defined_crud_functions.load_antibody_information',
-	ARRAY['TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT'],
+	ARRAY['TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT'],
 	'Add a row for an antibody to the table |antibody_information| and return a Boolean indicating if the row was added.',
-	$$SELECT load_antibody_information FROM user_defined_crud_functions.load_antibody_information('DARATUMUMAB', 'Human IgG1/κ', 'CD38', 'Commercial therapeutic', 'https://www.ebi.ac.uk/chembl/compound/inspect/CHEMBL1743007');$$,
-	'Given the antibody name, type, gene target, source and source URL, create a record in table |antibody_information|. ' ||
+	$$SELECT load_antibody_information FROM user_defined_crud_functions.load_antibody_information('DARATUMUMAB', 'Human IgG1/κ', 'CD38', 'Commercial therapeutic', 'https://www.ebi.ac.uk/chembl/compound/inspect/CHEMBL1743007', 'Human');$$,
+	'Given the antibody name, type, gene target, source, source URL and species, create a record in table |antibody_information|. ' ||
 	'This is an internal function that is NOT meant to be called by client code. It takes the antibody name as given and does no white space or case ' ||
-	'normalisation so that |daratumumab| and |Daratumumab| will be trated as distinct names.'
+	'normalisation so that |daratumumab| and |Daratumumab| will be treated as distinct names.'
 );
 
 SELECT create_function_comment_statement(
