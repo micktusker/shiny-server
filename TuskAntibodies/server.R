@@ -1,13 +1,10 @@
-userName <- "michael.maguire@tusktherapeutics.com"
-password <- "Meitheamh!12"
+userName <- "XXXXXX"
+password <- "XXXXX"
 pgConn <- getPgConnection(userName, password)
 
 shinyServer(function(input, output, session){
   db <- reactiveValues(abSummaryDF = NULL, filenamesStoredOnServer = NULL, abCommonIdentifiers = NULL)
   observeEvent(input$btn_pulldata, {
-#    userName <- "michael.maguire@tusktherapeutics.com"
-#    password <- "Meitheamh!12"
-#    db$pgConn <- getPgConnection(userName, password)
     db$abSummaryDF <- pullAntibodiesInformationAndSequence(pgConn)
     output$antibody_data_summary <- DT::renderDataTable({db$abSummaryDF})
   })
