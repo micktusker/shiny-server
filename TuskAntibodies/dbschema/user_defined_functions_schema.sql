@@ -8,7 +8,7 @@ AS
 $$
 DECLARE
   l_amino_acid_sequence TEXT := UPPER(REGEXP_REPLACE(p_amino_acid_sequence, '\s', '', 'g'));
-  l_amino_acids TEXT := CONCAT('ACDEFGHIKLMNPQRSTVWY', p_extra_allowable_chars);
+  l_amino_acids TEXT := CONCAT('ACDEFGHIKLMNPQRSTVWY', UPPER(p_extra_allowable_chars));
   l_regex TEXT := CONCAT('^[', l_amino_acids, ']+$');
 BEGIN
   IF l_amino_acid_sequence ~ l_regex THEN
