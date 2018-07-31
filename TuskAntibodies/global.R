@@ -33,7 +33,7 @@ pullAntibodiesInformationAndSequence <- function(pgConn) {
 
 getAllDataForGivenAbName <- function(pgConn, abName) {
   #user_defined_crud_functions.get_all_data_for_given_ab_name(p_given_name TEXT)
-  sqlTmpl <- "SELECT *  FROM user_defined_crud_functions.get_all_data_for_given_ab_name(?abName)"
+  sqlTmpl <- "SELECT *  FROM user_defined_functions.get_all_data_for_given_ab_name(?abName)"
   sql <- sqlInterpolate(DBI::ANSI(), sqlTmpl, abName = abName)
   allDataForGivenAbName <- dbFetch(dbSendQuery(pgConn, sql))
   
@@ -43,7 +43,7 @@ getAllDataForGivenAbName <- function(pgConn, abName) {
 
 
 getAllDataForAASeq <- function(pgConn, abSeqAA) {
-  sqlTmpl <- "SELECT * FROM user_defined_crud_functions.get_all_data_for_aa_seq(?abSeqAA)"
+  sqlTmpl <- "SELECT * FROM user_defined_functions.get_all_data_for_aa_seq(?abSeqAA)"
   sql <- sqlInterpolate(DBI::ANSI(), sqlTmpl, abSeqAA = abSeqAA)
   allDataForAASeq <- dbFetch(dbSendQuery(pgConn, sql))
   
@@ -52,7 +52,7 @@ getAllDataForAASeq <- function(pgConn, abSeqAA) {
 }
 
 getMatchedSequencesForSubseq <- function(pgConn, subSeq) {
-  sqlTmpl <- "SELECT * FROM user_defined_crud_functions.get_matched_sequences_for_subseq(?subSeq)"
+  sqlTmpl <- "SELECT * FROM user_defined_functions.get_matched_sequences_for_subseq(?subSeq)"
   sql <- sqlInterpolate(DBI::ANSI(), sqlTmpl, subSeq = subSeq)
   matchedSequencesForSubseq <- dbFetch(dbSendQuery(pgConn, sql))
   

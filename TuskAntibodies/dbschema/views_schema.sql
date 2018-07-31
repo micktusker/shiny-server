@@ -40,3 +40,25 @@ FROM
      cs.chain_type = 'L') sq2
   ON
     sq1.antibody_name = sq2.antibody_name;
+COMMENT ON VIEW ab_data.vw_antibodies_information_and_sequence IS 'Summary view of all antibody data matched to sequences. Thisview is used by the R Shiny application';
+
+CREATE OR REPLACE VIEW ab_data.vw_duplicated_sequences AS
+SELECT
+  sequence_hash_id,
+  ARRAY_AGG(sequence_name) sequence_names
+FROM
+  ab_data.chain_sequences
+GROUP BY
+  sequence_hash_id
+HAVING
+  COUNT(sequence_name) > 1;
+COMMENT ON VIEW ab_data.vw_duplicated_sequences IS 'Returns rows where the same sequence is shared by different sequence names.';
+
+
+
+
+GRANT USAGE ON SCHEMA ab_data TO mabmindergroup;
+GRANT INSERT, UPDATE, DELETE, SELECT ON ALL TABLES IN SCHEMA ab_data TO mabmindergroup;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ab_data TO mabmindergroup;
+
+
