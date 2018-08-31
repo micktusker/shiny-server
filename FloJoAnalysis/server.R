@@ -85,12 +85,28 @@ server <- function(input, output, session) {
       local({
         my_i <- i
         plotName <- paste("plot", my_i, sep="")
-        print(plotName)
         output[[plotName]] <- renderPlot({
           myPlots[[my_i]]
         })
       })
     }
+    # Build the tables
+    tableCount <- length(cachedVals$tableList)
+    output$individual_tables <- renderUI({
+      tableOutputList <- lapply(1:tableCount, function(i) {
+        tableName <- paste("table", i, sep="")
+        tableOutput(tableName)
+      })
+      do.call(tagList, tableOutputList)
+    })
+    for (i in 1:tableCount) {
+      local({
+        my_i <- i
+        tableName <- paste("table", my_i, sep="")
+        output[[tableName]] <- renderTable({
+          cachedVals$tableList[[my_i]]
+        })
+      })
+    }
   })
-  
 }

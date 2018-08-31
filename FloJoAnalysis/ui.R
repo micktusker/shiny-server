@@ -14,8 +14,10 @@ fluidPage(
   ),
   mainPanel(
     tabsetPanel(type = "tabs",
-                tabPanel("Individuals",
+                tabPanel("Individuals Plots",
                          uiOutput("individual_plots")),
+                tabPanel("Individuals Tables",
+                         uiOutput("individual_tables")),
                 tabPanel("Pools",
                          plotOutput("stacked_plot"),
                          DT::dataTableOutput("summary_tables")),
