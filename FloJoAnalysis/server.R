@@ -108,5 +108,24 @@ server <- function(input, output, session) {
         })
       })
     }
+    # POOL PLOTS --------------------------------------------------------------
+    # Mark can add this.
+    indicationToggle <- "y"
+    plotSet <- rbindlist(cachedVals$tableList)
+    
+    ##get statistics for the pooled donors
+    y_variable <- as.character("Count")
+    statSet <- statSetting(plotSet, "Population", y_variable)
+    statSet[[y_variable]]= with(statSet,mean)
+    statSet <- merge(statSet,unique.data.frame(data.frame(plotSet$Population,plotSet$xLabels)), by.x = "Population", by.y = "plotSet.Population")
+    names(statSet)[7] <- "xLabels"
+    stackToggle <- assign(stackToggle, ifelse(stackToggle == "y", "xLabels", "Population"))
+    if(indicationToggle=="y"){
+      poolPlot <- ggplot(plotSet, aes(x=get(stackToggle), y=get(y_variable), fill=Population)) + geom_bar(data=statSet,stat="identity") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) +scale_fill_brewer(palette="Set3") + geom_dotplot(binaxis='y', binwidth = 1, stackdir='center') + stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), geom="errorbar", color="black", width=0.2) + labs(y = paste0(y_variable), title= paste0("Proportions of immune cell populations in ")) + theme(plot.title = element_text(hjust = 0.5), axis.title.x=element_blank()) +facet_wrap(~Indication)
+    } else if(indicationToggle=="n"){
+      poolPlot <- ggplot(plotSet, aes(x=get(stackToggle), y=get(y_variable), fill=Population)) + geom_bar(data=statSet,stat="identity") + theme(axis.text.x = element_text(angle = 45, hjust = 1)) +scale_fill_brewer(palette="Set3") + geom_dotplot(binaxis='y', binwidth = 1, stackdir='center') + stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), geom="errorbar", color="black", width=0.2) + labs(y = paste0(y_variable), title= paste0("Proportions of immune cell populations in ")) + theme(plot.title = element_text(hjust = 0.5), axis.title.x=element_blank())
+    }
+    output$stacked_plot <- renderPlot(poolPlot)
+    output$pooled_table <- DT::renderDataTable(plotSet)
   })
 }

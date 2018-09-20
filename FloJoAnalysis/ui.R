@@ -18,11 +18,10 @@ fluidPage(
                          uiOutput("individual_plots")),
                 tabPanel("Individuals Tables",
                          uiOutput("individual_tables")),
-                tabPanel("Pools",
-                         plotOutput("stacked_plot"),
-                         DT::dataTableOutput("summary_tables")),
-                tabPanel("Plot Data Table",
-                         DT::dataTableOutput("plot_table")),
+                tabPanel("Pooled Plot",
+                         plotOutput("stacked_plot")),
+                tabPanel("Pooled Table",
+                         DT::dataTableOutput("pooled_table")),
                 tabPanel("Full Data Table",
                          DT::dataTableOutput("full_table"))
     )

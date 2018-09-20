@@ -102,3 +102,44 @@ getTableList <- function(fullTable, populations) {
   
 }
 
+
+# Marks's functions
+squish_trans <- function(from, to, factor) {
+  
+  trans <- function(x) {
+    
+    # get indices for the relevant regions
+    isq <- x > from & x < to
+    ito <- x >= to
+    
+    # apply transformation
+    x[isq] <- from + (x[isq] - from)/factor
+    x[ito] <- from + (to - from)/factor + (x[ito] - to)
+    
+    return(x)
+  }
+  
+  inv <- function(x) {
+    
+    # get indices for the relevant regions
+    isq <- x > from & x < from + (to - from)/factor
+    ito <- x >= from + (to - from)/factor
+    
+    # apply transformation
+    x[isq] <- from + (x[isq] - from) * factor
+    x[ito] <- to + (x[ito] - (from + (to - from)/factor))
+    
+    return(x)
+  }
+  
+  # return the transformation
+  return(trans_new("squished", trans, inv))
+}
+
+statSetting <- function(x, y, col){
+  z <- ddply(x, y, .fun = function(xx){
+    c(mean= mean(xx[,col],na.rm=TRUE),
+      N = length(xx[,col]), sd = sd(xx[,col],na.rm=TRUE),se = sd(xx[,col],na.rm=TRUE) / sqrt(length(xx[,col]))) })
+  return(z)
+}
+
